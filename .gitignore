@@ -1,0 +1,24 @@
+# --- Segurança e Segredos ---
+.env
+.env.local
+
+# --- Banco de Dados ---
+*.db
+*.sqlite3
+instance/
+financeiro.db
+
+# --- Arquivos de Usuário ---
+uploads/
+static/uploads/
+
+# --- Lixo do Python ---
+__pycache__/
+*.pyc
+venv/
+.pytest_cache/
+
+# --- Suas Pastas de Rascunho ---
+rascunhos/
+temp/
+bkp/

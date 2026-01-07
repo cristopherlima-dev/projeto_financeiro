@@ -1,0 +1,100 @@
+<div class="modal fade" id="modalLancamento" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Novo Lançamento</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-lancamento" class="row g-3">
+          <div class="col-md-12">
+            <label class="form-label fw-bold">Data do Lançamento</label>
+            <input type="date" id="input-data" class="form-control" required />
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Tipo</label>
+            <select
+              id="input-tipo"
+              class="form-select"
+              onchange="atualizarOpcoesFormulario()"
+            >
+              <option value="entrada">Entrada (+)</option>
+              <option value="saida">Saída (-)</option>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Subtipo</label>
+            <select
+              id="input-subtipo"
+              class="form-select"
+              onchange="filtrarCategoriasNoLancamento()"
+            ></select>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label fw-bold">Categoria</label>
+            <select id="input-categoria" class="form-select">
+              <option value="">Selecione uma categoria...</option>
+            </select>
+            <div class="form-text">
+              Não achou?
+              <a
+                href="#"
+                data-bs-toggle="modal"
+                data-bs-target="#modalCategorias"
+                >Gerencie suas categorias aqui.</a
+              >
+            </div>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Descrição / Observação</label>
+            <input
+              type="text"
+              id="input-descricao"
+              class="form-control"
+              placeholder="Ex: Compra mensal, Pagamento boleto..."
+              required
+            />
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Valor (R$)</label>
+            <input
+              type="number"
+              id="input-valor"
+              step="0.01"
+              class="form-control"
+              placeholder="0,00"
+              required
+            />
+          </div>
+
+          <div class="col-12 mt-3">
+            <label class="form-label fw-bold">Anexo / Comprovante</label>
+            <input type="file" id="input-arquivo" class="form-control" />
+            <div class="form-text">Opcional. Imagens ou PDFs.</div>
+          </div>
+
+          <div class="modal-footer px-0 pb-0 mt-4">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-success px-4">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

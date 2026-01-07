@@ -1,0 +1,59 @@
+<div class="modal fade" id="modalCategorias" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">📂 Gerenciar Categorias</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-nova-categoria" class="mb-4 border-bottom pb-3">
+          <h6 class="fw-bold mb-3">Nova Categoria</h6>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="small text-muted">Tipo</label>
+              <select
+                id="cat-tipo"
+                class="form-select form-select-sm"
+                onchange="atualizarSubtiposCategoria()"
+              >
+                <option value="entrada">Entrada</option>
+                <option value="saida" selected>Saída</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="small text-muted">Subtipo</label>
+              <select
+                id="cat-subtipo"
+                class="form-select form-select-sm"
+              ></select>
+            </div>
+            <div class="col-12">
+              <label class="small text-muted">Nome da Categoria</label>
+              <div class="input-group input-group-sm">
+                <input
+                  type="text"
+                  id="cat-nome"
+                  class="form-control"
+                  placeholder="Ex: Internet, Mercado, Combustível..."
+                  required
+                />
+                <button class="btn btn-primary" type="submit">Adicionar</button>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <h6 class="fw-bold">Categorias Cadastradas</h6>
+        <div
+          class="list-group list-group-flush small"
+          id="lista-categorias"
+          style="max-height: 250px; overflow-y: auto"
+        ></div>
+      </div>
+    </div>
+  </div>
+</div>

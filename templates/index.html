@@ -1,0 +1,352 @@
+{% extends "base.html" %} {% block title %}Dashboard Pro{% endblock %} {% block
+content %}
+
+<div class="d-flex justify-content-between mb-3">
+  <ul class="nav nav-tabs border-0" id="myTab" role="tablist">
+    <li class="nav-item">
+      <button
+        class="nav-link active fw-bold"
+        data-bs-toggle="tab"
+        data-bs-target="#dashboard-pane"
+      >
+        📊 Dashboard
+      </button>
+    </li>
+    <li class="nav-item">
+      <button
+        class="nav-link fw-bold"
+        data-bs-toggle="tab"
+        data-bs-target="#lancamentos-pane"
+      >
+        📝 Lançamentos
+      </button>
+    </li>
+    <li class="nav-item">
+      <button
+        class="nav-link fw-bold"
+        data-bs-toggle="tab"
+        data-bs-target="#vencimentos-pane"
+      >
+        ⏰ Vencimentos
+      </button>
+    </li>
+    <li class="nav-item">
+      <button
+        class="nav-link fw-bold"
+        data-bs-toggle="tab"
+        data-bs-target="#planejamento-pane"
+        onclick="carregarPlanejamento()"
+      >
+        📅 Planejamento Anual
+      </button>
+    </li>
+  </ul>
+  <button
+    class="btn btn-sm btn-outline-dark"
+    data-bs-toggle="modal"
+    data-bs-target="#modalConfig"
+  >
+    ⚙️ Configurar
+  </button>
+</div>
+
+<div class="tab-content">
+  <div class="tab-pane fade show active" id="dashboard-pane">
+    <div class="row text-center g-2 mb-4">
+      <div class="col">
+        <div class="card bg-success text-white h-100 shadow-sm">
+          <div class="card-body p-2">
+            <small>Entradas (Recebidas)</small>
+            <h5 id="card-ent-ok">R$ 0,00</h5>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div
+          class="card bg-success-subtle text-success h-100 shadow-sm border-success"
+        >
+          <div class="card-body p-2">
+            <small>Entradas (A Receber)</small>
+            <h5 id="card-ent-pend">R$ 0,00</h5>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card bg-danger text-white h-100 shadow-sm">
+          <div class="card-body p-2">
+            <small>Saídas (Pagas)</small>
+            <h5 id="card-sai-ok">R$ 0,00</h5>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div
+          class="card bg-danger-subtle text-danger h-100 shadow-sm border-danger"
+        >
+          <div class="card-body p-2">
+            <small>Saídas (A Pagar)</small>
+            <h5 id="card-sai-pend">R$ 0,00</h5>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card bg-primary text-white h-100 shadow-sm">
+          <div class="card-body p-2">
+            <small>Saldo Real</small>
+            <h5 id="card-saldo">R$ 0,00</h5>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h6 class="fw-bold text-primary border-bottom pb-2">⚖️ Balanço Mensal</h6>
+    <div class="row mb-4 justify-content-center">
+      <div class="col-md-6">
+        <div class="card shadow-sm">
+          <div class="card-header small">Entradas vs Saídas (Efetivadas)</div>
+          <div class="card-body" style="height: 300px">
+            <canvas id="chartBalanco"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h6 class="fw-bold text-success border-bottom pb-2">
+      💰 Análise de Entradas
+    </h6>
+    <div class="row mb-4">
+      <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-header small">Por Subtipo</div>
+          <div class="card-body"><canvas id="chartEntSub"></canvas></div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-header small">Por Categoria</div>
+          <div class="card-body"><canvas id="chartEntCat"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <h6 class="fw-bold text-danger border-bottom pb-2">💸 Análise de Saídas</h6>
+    <div class="row mb-5">
+      <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-header small">Por Subtipo</div>
+          <div class="card-body"><canvas id="chartSaiSub"></canvas></div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-header small">Por Categoria</div>
+          <div class="card-body"><canvas id="chartSaiCat"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-pane fade" id="lancamentos-pane">
+    <div class="d-flex justify-content-between mb-3">
+      <h5>Histórico</h5>
+      <button
+        class="btn btn-primary"
+        data-bs-toggle="modal"
+        data-bs-target="#modalLancamento"
+        onclick="prepararModal()"
+      >
+        + Novo
+      </button>
+    </div>
+    <div class="table-responsive shadow-sm rounded">
+      <table class="table table-hover mb-0 bg-white align-middle small">
+        <thead class="table-light">
+          <tr>
+            <th>Status</th>
+            <th>Data</th>
+            <th>Descrição</th>
+            <th>Tipo</th>
+            <th>Subtipo</th>
+            <th>Categoria</th>
+            <th>Valor</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-lancamentos-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tab-pane fade" id="vencimentos-pane">
+    <div class="d-flex justify-content-between mb-3">
+      <h5>Vencimentos</h5>
+      <button
+        class="btn btn-warning"
+        data-bs-toggle="modal"
+        data-bs-target="#modalVencimento"
+      >
+        + Alerta
+      </button>
+    </div>
+    <div class="table-responsive shadow-sm rounded">
+      <table class="table table-hover bg-white align-middle">
+        <thead>
+          <tr>
+            <th>Descrição</th>
+            <th>Tipo</th>
+            <th>Data</th>
+            <th>Ativo</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-vencimentos-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tab-pane fade" id="planejamento-pane">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5>📅 Visão Anual por Categoria</h5>
+      <div class="d-flex gap-2 align-items-center">
+        <label class="fw-bold">Ano:</label>
+        <select
+          id="filtro-ano-plan"
+          class="form-select form-select-sm w-auto"
+          onchange="carregarPlanejamento()"
+        ></select>
+      </div>
+    </div>
+    <div class="table-responsive shadow-sm rounded bg-white">
+      <table
+        class="table table-bordered table-hover mb-0 small text-center align-middle"
+        id="tabela-planejamento"
+      >
+        <thead class="table-dark">
+          <tr>
+            <th class="text-start" style="min-width: 150px">Categoria</th>
+            <th>Jan</th>
+            <th>Fev</th>
+            <th>Mar</th>
+            <th>Abr</th>
+            <th>Mai</th>
+            <th>Jun</th>
+            <th>Jul</th>
+            <th>Ago</th>
+            <th>Set</th>
+            <th>Out</th>
+            <th>Nov</th>
+            <th>Dez</th>
+            <th class="bg-secondary">Total</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-planejamento"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalLancamento" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Novo Lançamento</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-lancamento">
+          <div class="mb-2">
+            <label>Data</label>
+            <input type="date" id="inp-data" class="form-control" required />
+          </div>
+
+          <div class="mb-2">
+            <label>Tipo (Natureza)</label>
+            <select
+              id="inp-tipo"
+              class="form-select"
+              onchange="carregarSubtiposNoModal()"
+            ></select>
+          </div>
+
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label>Subtipo</label>
+              <select
+                id="inp-subtipo"
+                class="form-select"
+                onchange="carregarCategoriasNoModal()"
+              ></select>
+            </div>
+            <div class="col-6">
+              <label>Categoria</label>
+              <select id="inp-categoria" class="form-select"></select>
+              <div class="form-text small">
+                Não achou?
+                <a
+                  href="#"
+                  data-bs-toggle="modal"
+                  data-bs-target="#modalCategorias"
+                  >Gerencie aqui.</a
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <label>Descrição</label>
+            <input type="text" id="inp-desc" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label>Valor</label>
+            <input
+              type="number"
+              id="inp-valor"
+              step="0.01"
+              class="form-control"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label>Anexo</label>
+            <input type="file" id="inp-arquivo" class="form-control" />
+          </div>
+
+          <button type="submit" class="btn btn-success w-100">Salvar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div
+  class="modal fade"
+  id="modalConfirmDelete"
+  tabindex="-1"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-body text-center p-4">
+        <div class="text-danger fs-1 mb-3">🗑️</div>
+        <h5 class="mb-3">Tem certeza?</h5>
+        <p class="text-muted small mb-4">Essa ação não pode ser desfeita.</p>
+        <div class="d-flex justify-content-center gap-2">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn-danger px-4"
+            id="btn-confirm-delete"
+          >
+            Excluir
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% include 'components/modal_config.html' %} {% include
+'components/modal_vencimento.html' %} {% include
+'components/modal_categorias.html' %} {% endblock %}

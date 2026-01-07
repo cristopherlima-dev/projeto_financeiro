@@ -1,0 +1,27 @@
+/* static/style.css */
+.card-total {
+  transition: transform 0.2s;
+}
+.card-total:hover {
+  transform: translateY(-5px);
+}
+
+/* Estilo para itens pendentes (não efetivados) */
+.linha-desabilitada {
+  color: #adb5bd !important;
+  opacity: 0.6;
+}
+
+.linha-desabilitada .badge {
+  background-color: #e9ecef !important;
+  color: #6c757d !important;
+}
+
+.linha-desabilitada .valor-texto {
+  color: #adb5bd !important;
+}
+
+/* Estilo do link do anexo */
+a.btn-link-anexo {
+  text-decoration: none;
+}

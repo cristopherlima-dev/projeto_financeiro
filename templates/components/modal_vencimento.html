@@ -1,0 +1,68 @@
+<div class="modal fade" id="modalVencimento" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-warning-subtle">
+        <h5 class="modal-title fw-bold">🔔 Novo Alerta de Vencimento</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-vencimento">
+          <div class="mb-3">
+            <label class="form-label">Descrição da Conta</label>
+            <input
+              type="text"
+              id="venc-descricao"
+              class="form-control"
+              placeholder="Ex: Parcela do Carro"
+              required
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Tipo de Recorrência</label>
+            <select
+              id="venc-tipo"
+              class="form-select"
+              onchange="alternarCamposVencimento()"
+            >
+              <option value="fixo">📅 Mensal Fixo (Todo mês)</option>
+              <option value="variavel">📆 Variável (Apenas uma vez)</option>
+            </select>
+          </div>
+
+          <div class="mb-3" id="div-dia-fixo">
+            <label class="form-label">Dia do Vencimento (1-31)</label>
+            <input
+              type="number"
+              id="venc-dia"
+              class="form-control"
+              min="1"
+              max="31"
+              placeholder="Ex: 10"
+            />
+          </div>
+
+          <div class="mb-3 d-none" id="div-data-variavel">
+            <label class="form-label">Data do Vencimento</label>
+            <input type="date" id="venc-data" class="form-control" />
+          </div>
+
+          <div class="modal-footer px-0 pb-0">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-warning">Salvar Alerta</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
