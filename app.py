@@ -363,4 +363,4 @@ if __name__ == "__main__":
     t = threading.Thread(target=iniciar_bot)
     t.daemon = True 
     t.start()
-    app.run(debug=True, use_reloader=False)
+    app.run(host='0.0.0.0', debug=True, use_reloader=False)
