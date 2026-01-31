@@ -10,6 +10,7 @@
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <link
       href="{{ url_for('static', filename='style.css') }}"
       rel="stylesheet"
@@ -17,25 +18,52 @@
   </head>
   <body class="bg-light">
     <div class="container mt-4">
+      
       <div class="row align-items-center mb-4">
-        <div class="col-md-6">
+        <div class="col-md-6 d-flex align-items-center gap-3">
           <h2 class="mb-0">Meu Controle Financeiro</h2>
+          
+          {% if current_user.is_authenticated %}
+            <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-danger">Sair</a>
+          {% endif %}
         </div>
+        
         <div class="col-md-6 text-md-end">
           <label class="fw-bold me-2">Exibindo Mês:</label>
           <input
             type="month"
             id="filtro-mes"
             class="form-control d-inline-block w-auto shadow-sm"
-            onchange="atualizarInterface()"
+            onchange="if(typeof atualizarInterface === 'function') { atualizarInterface() }"
           />
         </div>
       </div>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="alert alert-warning alert-dismissible fade show">
+                {{ messages[0] }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endif %}
+      {% endwith %}
 
       {% block content %} {% endblock %}
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const inputMes = document.getElementById("filtro-mes");
+            if (inputMes && !inputMes.value) {
+                const hoje = new Date();
+                const ano = hoje.getFullYear();
+                const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+                inputMes.value = `${ano}-${mes}`;
+            }
+        });
+    </script>
   </body>
 </html>

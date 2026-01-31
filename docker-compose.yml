@@ -4,11 +4,11 @@ services:
     container_name: sistema_financeiro
     restart: always
     ports:
-      - "5000:5000"  # Acessível na porta 80 (http://seu-ip). Se preferir a 5000, mude para "5000:5000"
+      - "5000:5000"
     volumes:
-      - ./uploads:/app/uploads              # Salva os comprovativos fora do container
-      - ./financeiro.db:/app/financeiro.db  # Salva o banco de dados fora do container
+      - ./uploads:/app/uploads  # Mapeia a pasta de uploads
+      - ./dados:/app/dados      # Mapeia a pasta do banco de dados
     env_file:
       - .env
     environment:
-      - TZ=America/Sao_Paulo  # Ajuste o fuso horário para os alertas do Telegram
+      - TZ=America/Sao_Paulo    # Garante o horário correto nos lançamentos
