@@ -20,16 +20,15 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# --- CONFIGURAÇÃO DE CAMINHOS ABSOLUTOS (CORREÇÃO DO ERRO) ---
-basedir = os.path.abspath(os.path.dirname(__file__)) # Pega a pasta atual (/app)
-db_path = os.path.join(basedir, 'dados', 'financeiro.db') # Monta /app/dados/financeiro.db
+# --- CONFIGURAÇÃO DE CAMINHOS ABSOLUTOS ---
+basedir = os.path.abspath(os.path.dirname(__file__)) 
+db_path = os.path.join(basedir, 'dados', 'financeiro.db') 
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev_key') 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'uploads')
 
-# Garante que as pastas existem
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
 
@@ -55,7 +54,6 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(200), nullable=False)
     email = db.Column(db.String(100), nullable=True) 
     is_admin = db.Column(db.Boolean, default=False)
-    # NOVA COLUNA: Guarda a chave secreta do 2FA
     totp_secret = db.Column(db.String(32), nullable=True)
 
     def set_password(self, password):
@@ -64,7 +62,6 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    # NOVOS MÉTODOS PARA 2FA
     def get_totp_uri(self):
         return pyotp.totp.TOTP(self.totp_secret).provisioning_uri(
             name=self.username, 
@@ -77,6 +74,22 @@ class User(UserMixin, db.Model):
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
+
+# --- NOVO MODELO: CONTA ---
+class Conta(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(50), nullable=False)
+    # Tipo: 'banco', 'carteira', 'cartao_credito', 'investimento', 'vale'
+    tipo = db.Column(db.String(20), default='banco') 
+    saldo_inicial = db.Column(db.Float, default=0.0)
+
+    def to_dict(self):
+        return {
+            "id": self.id, 
+            "nome": self.nome, 
+            "tipo": self.tipo,
+            "saldo_inicial": self.saldo_inicial
+        }
 
 class Tipo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -102,6 +115,10 @@ class Lancamento(db.Model):
     tipo_id = db.Column(db.Integer, db.ForeignKey('tipo.id'), nullable=False)
     subtipo_id = db.Column(db.Integer, db.ForeignKey('subtipo.id'), nullable=False)
     categoria_id = db.Column(db.Integer, db.ForeignKey('categoria.id'), nullable=True)
+    
+    # --- CAMPO NOVO: Vínculo com a Conta ---
+    conta_id = db.Column(db.Integer, db.ForeignKey('conta.id'), nullable=True)
+
     valor = db.Column(db.Float, nullable=False)
     efetivado = db.Column(db.Boolean, default=False)
     comprovante = db.Column(db.String(200), nullable=True)
@@ -110,10 +127,15 @@ class Lancamento(db.Model):
         t = db.session.get(Tipo, self.tipo_id)
         s = db.session.get(Subtipo, self.subtipo_id)
         c = db.session.get(Categoria, self.categoria_id)
+        conta = db.session.get(Conta, self.conta_id) # Busca a conta
+        
         return {
             "id": self.id, "data": self.data, "descricao": self.descricao,
             "tipo": t.nome if t else "N/A", "subtipo": s.nome if s else "N/A",
-            "categoria": c.nome if c else "-", "valor": self.valor,
+            "categoria": c.nome if c else "-", 
+            "conta": conta.nome if conta else "Padrão", # Retorna o nome da conta
+            "conta_id": self.conta_id,
+            "valor": self.valor,
             "efetivado": self.efetivado, "comprovante": self.comprovante
         }
 
@@ -131,100 +153,57 @@ def inicializar_banco():
     with app.app_context():
         db.create_all()
         if not db.session.get(Tipo, 1):
-            db.session.add(Tipo(id=1, nome="Entrada")); db.session.add(Tipo(id=2, nome="Saída")); db.session.commit()
+            db.session.add(Tipo(id=1, nome="Entrada")); db.session.add(Tipo(id=2, nome="Saída"))
+        
+        # Cria conta padrão se não existir
+        if not db.session.query(Conta).first():
+            db.session.add(Conta(nome="Carteira Principal", tipo="carteira"))
+            
+        db.session.commit()
 
 inicializar_banco()
 
 # --- ROTAS ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-        
+    if current_user.is_authenticated: return redirect(url_for('index'))
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        token_2fa = request.form.get('token_2fa') # Campo novo do formulário
-        
+        token_2fa = request.form.get('token_2fa')
         user = User.query.filter_by(username=username).first()
-        
         if user and user.check_password(password):
-            # CASO 1: Usuário tem 2FA ativado
             if user.totp_secret:
                 if token_2fa:
-                    # Se ele digitou o código, verifica
-                    if user.verify_totp(token_2fa):
-                        login_user(user)
-                        return redirect(url_for('index'))
-                    else:
-                        flash('Código 2FA incorreto.')
-                        return render_template('login.html', step='2fa', username=username, password=password)
-                else:
-                    # Se a senha tá certa mas não mandou token, mostra campo de 2FA
-                    return render_template('login.html', step='2fa', username=username, password=password)
-            
-            # CASO 2: Usuário NÃO tem 2FA (Login normal)
-            else:
-                login_user(user)
-                return redirect(url_for('index'))
-        else:
-            flash('Usuário ou senha inválidos.')
-            
+                    if user.verify_totp(token_2fa): login_user(user); return redirect(url_for('index'))
+                    else: flash('Código 2FA incorreto.'); return render_template('login.html', step='2fa', username=username, password=password)
+                else: return render_template('login.html', step='2fa', username=username, password=password)
+            else: login_user(user); return redirect(url_for('index'))
+        else: flash('Usuário ou senha inválidos.')
     return render_template('login.html', step='login')
 
 @app.route('/logout')
 @login_required
 def logout(): logout_user(); return redirect(url_for('login'))
 
-# ==========================================
-#           ROTAS DE 2FA (NOVO)
-# ==========================================
-
 @app.route('/setup-2fa')
 @login_required
 def setup_2fa():
-    # Se o usuário já tem 2FA, não precisa configurar de novo
-    if current_user.totp_secret:
-        flash('A autenticação de dois fatores já está ativada.')
-        return redirect(url_for('index'))
-    
-    # 1. Gera um segredo aleatório se não existir
+    if current_user.totp_secret: flash('2FA já ativado.'); return redirect(url_for('index'))
     secret = pyotp.random_base32()
-    
-    # 2. Gera a URL para o QR Code
-    # Cria uma instância temporária do usuário só para gerar a URI, 
-    # ou salvamos o secret temporariamente na sessão (vamos simplificar salvando no user mas sem confirmar ainda)
-    
-    # Gera a URL de provisionamento
     uri = pyotp.totp.TOTP(secret).provisioning_uri(name=current_user.username, issuer_name='Financas do Cris')
-    
-    # 3. Gera a imagem do QR Code
-    img = qrcode.make(uri)
-    buffered = BytesIO()
-    img.save(buffered, format="PNG")
+    img = qrcode.make(uri); buffered = BytesIO(); img.save(buffered, format="PNG")
     img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
-    
     return render_template('setup_2fa.html', secret=secret, qr_code=img_str)
 
 @app.route('/verify-2fa-setup', methods=['POST'])
 @login_required
 def verify_2fa_setup():
-    secret = request.form.get('secret')
-    token = request.form.get('token')
-    
-    totp = pyotp.TOTP(secret)
-    
-    if totp.verify(token):
-        # Código correto! Salva o segredo no banco
-        current_user.totp_secret = secret
-        db.session.commit()
-        flash('✅ 2FA ativado com sucesso!', 'success')
-        return redirect(url_for('index'))
-    else:
-        flash('❌ Código incorreto. Tente novamente.', 'error')
-        return redirect(url_for('setup_2fa'))
-
-# ==========================================
+    secret = request.form.get('secret'); token = request.form.get('token')
+    if pyotp.TOTP(secret).verify(token):
+        current_user.totp_secret = secret; db.session.commit()
+        flash('✅ 2FA ativado!', 'success'); return redirect(url_for('index'))
+    else: flash('❌ Código incorreto.', 'error'); return redirect(url_for('setup_2fa'))
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -290,6 +269,23 @@ def index(): return render_template('index.html')
 @login_required
 def uploaded_file(filename): return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+# --- NOVAS ROTAS PARA CONTAS ---
+@app.route('/api/config/contas', methods=['GET', 'POST', 'DELETE'])
+@login_required
+def api_contas():
+    if request.method == 'GET':
+        return jsonify([c.to_dict() for c in Conta.query.all()])
+    if request.method == 'POST':
+        d = request.json
+        db.session.add(Conta(nome=d['nome'], tipo=d['tipo']))
+        db.session.commit()
+        return jsonify({"msg":"ok"})
+    if request.method == 'DELETE':
+        item = db.session.get(Conta, request.args.get('id'))
+        if item: 
+            db.session.delete(item); db.session.commit()
+        return jsonify({"msg":"ok"})
+
 @app.route('/api/config/tipos', methods=['GET'])
 @login_required
 def get_tipos(): return jsonify([t.to_dict() for t in Tipo.query.all()])
@@ -330,8 +326,24 @@ def criar_lanc():
             if arq.filename:
                 nome_arq = str(int(time.time())) + "_" + secure_filename(arq.filename)
                 arq.save(os.path.join(app.config['UPLOAD_FOLDER'], nome_arq))
+        
         cat = int(f.get('categoria_id')) if f.get('categoria_id') and f.get('categoria_id') != 'null' else None
-        db.session.add(Lancamento(data=f.get('data'), descricao=f.get('descricao'), tipo_id=int(f.get('tipo_id')), subtipo_id=int(f.get('subtipo_id')), categoria_id=cat, valor=float(f.get('valor')), efetivado=False, comprovante=nome_arq))
+        
+        # Pega a conta do formulário
+        c_raw = f.get('conta_id')
+        conta_id = int(c_raw) if c_raw and c_raw != 'null' else None
+
+        db.session.add(Lancamento(
+            data=f.get('data'), 
+            descricao=f.get('descricao'), 
+            tipo_id=int(f.get('tipo_id')), 
+            subtipo_id=int(f.get('subtipo_id')), 
+            categoria_id=cat, 
+            conta_id=conta_id,
+            valor=float(f.get('valor')), 
+            efetivado=False, 
+            comprovante=nome_arq
+        ))
         db.session.commit(); return jsonify({"msg":"ok"}), 201
     except Exception as e: return jsonify({"erro": str(e)}), 400
 

@@ -62,9 +62,7 @@ content %}
         </div>
       </div>
       <div class="col">
-        <div
-          class="card bg-success-subtle text-success h-100 shadow-sm border-success"
-        >
+        <div class="card bg-success-subtle text-success h-100 shadow-sm border-success">
           <div class="card-body p-2">
             <small>Entradas (A Receber)</small>
             <h5 id="card-ent-pend">R$ 0,00</h5>
@@ -80,9 +78,7 @@ content %}
         </div>
       </div>
       <div class="col">
-        <div
-          class="card bg-danger-subtle text-danger h-100 shadow-sm border-danger"
-        >
+        <div class="card bg-danger-subtle text-danger h-100 shadow-sm border-danger">
           <div class="card-body p-2">
             <small>Saídas (A Pagar)</small>
             <h5 id="card-sai-pend">R$ 0,00</h5>
@@ -164,7 +160,7 @@ content %}
           <tr>
             <th>Status</th>
             <th>Data</th>
-            <th>Descrição</th>
+            <th>Conta</th> <th>Descrição</th>
             <th>Tipo</th>
             <th>Subtipo</th>
             <th>Categoria</th>
@@ -245,85 +241,7 @@ content %}
   </div>
 </div>
 
-<div class="modal fade" id="modalLancamento" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Novo Lançamento</h5>
-        <button class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <form id="form-lancamento">
-          <div class="mb-2">
-            <label>Data</label>
-            <input type="date" id="inp-data" class="form-control" required />
-          </div>
-
-          <div class="mb-2">
-            <label>Tipo (Natureza)</label>
-            <select
-              id="inp-tipo"
-              class="form-select"
-              onchange="carregarSubtiposNoModal()"
-            ></select>
-          </div>
-
-          <div class="row g-2 mb-2">
-            <div class="col-6">
-              <label>Subtipo</label>
-              <select
-                id="inp-subtipo"
-                class="form-select"
-                onchange="carregarCategoriasNoModal()"
-              ></select>
-            </div>
-            <div class="col-6">
-              <label>Categoria</label>
-              <select id="inp-categoria" class="form-select"></select>
-              <div class="form-text small">
-                Não achou?
-                <a
-                  href="#"
-                  data-bs-toggle="modal"
-                  data-bs-target="#modalCategorias"
-                  >Gerencie aqui.</a
-                >
-              </div>
-            </div>
-          </div>
-
-          <div class="mb-2">
-            <label>Descrição</label>
-            <input type="text" id="inp-desc" class="form-control" required />
-          </div>
-          <div class="mb-3">
-            <label>Valor</label>
-            <input
-              type="number"
-              id="inp-valor"
-              step="0.01"
-              class="form-control"
-              required
-            />
-          </div>
-          <div class="mb-3">
-            <label>Anexo</label>
-            <input type="file" id="inp-arquivo" class="form-control" />
-          </div>
-
-          <button type="submit" class="btn btn-success w-100">Salvar</button>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div
-  class="modal fade"
-  id="modalConfirmDelete"
-  tabindex="-1"
-  aria-hidden="true"
->
+<div class="modal fade" id="modalConfirmDelete" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-sm modal-dialog-centered">
     <div class="modal-content border-0 shadow">
       <div class="modal-body text-center p-4">
@@ -347,6 +265,7 @@ content %}
   </div>
 </div>
 
-{% include 'components/modal_config.html' %} {% include
-'components/modal_vencimento.html' %} {% include
-'components/modal_categorias.html' %} {% endblock %}
+{% include 'components/modal_config.html' %} 
+{% include 'components/modal_vencimento.html' %} 
+{% include 'components/modal_categorias.html' %} 
+{% include 'components/modal.html' %} {% endblock %}

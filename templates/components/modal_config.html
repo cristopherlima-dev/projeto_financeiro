@@ -1,69 +1,59 @@
 <div class="modal fade" id="modalConfig" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-xl">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title fw-bold">⚙️ Gerenciar Classificações</h5>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="modal"
-        ></button>
+        <h5 class="modal-title fw-bold">⚙️ Gerenciar Classificações e Contas</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <div class="row">
-          <div class="col-md-4 border-end">
-            <h6 class="fw-bold text-primary">1. Tipos (Fixo)</h6>
-            <p class="small text-muted">Selecione para ver subtipos.</p>
-            <div
-              id="lista-tipos"
-              class="list-group list-group-flush small"
-              style="height: 250px; overflow-y: auto"
-            ></div>
+          
+          <div class="col-md-3 border-end bg-light-subtle rounded-start">
+             <h6 class="fw-bold text-dark mt-2"><i class="fa-solid fa-wallet"></i> Contas / Cartões</h6>
+             <p class="small text-muted mb-2">Onde está o dinheiro?</p>
+             
+             <form id="form-conta" class="mb-3">
+                <input type="text" id="nova-conta-nome" class="form-control form-control-sm mb-2" placeholder="Nome (ex: Nubank)" required>
+                <select id="nova-conta-tipo" class="form-select form-select-sm mb-2">
+                    <option value="banco">Conta Corrente</option>
+                    <option value="cartao_credito">Cartão de Crédito</option>
+                    <option value="vale">Vale (Alim/Ref)</option>
+                    <option value="investimento">Investimento</option>
+                    <option value="carteira">Carteira Física</option>
+                </select>
+                <button class="btn btn-sm btn-dark w-100 fw-bold" type="submit">
+                    <i class="fa-solid fa-plus"></i> Adicionar Conta
+                </button>
+             </form>
+             <div id="lista-contas" class="list-group list-group-flush small border rounded bg-white" style="height: 250px; overflow-y: auto"></div>
           </div>
 
-          <div class="col-md-4 border-end">
-            <h6 class="fw-bold text-success">2. Subtipos</h6>
-            <p class="small text-muted mb-1">
-              Vinculado a: <b id="lbl-tipo-selecionado">---</b>
-            </p>
+          <div class="col-md-3 border-end">
+            <h6 class="fw-bold text-primary mt-2">1. Tipos (Fixo)</h6>
+            <p class="small text-muted">Natureza da operação.</p>
+            <div id="lista-tipos" class="list-group list-group-flush small" style="height: 300px; overflow-y: auto"></div>
+          </div>
+
+          <div class="col-md-3 border-end">
+            <h6 class="fw-bold text-success mt-2">2. Subtipos</h6>
+            <p class="small text-muted mb-1">Vinculado a: <b id="lbl-tipo-selecionado">---</b></p>
             <form id="form-subtipo" class="input-group input-group-sm mb-2">
-              <input
-                type="text"
-                id="novo-subtipo-nome"
-                class="form-control"
-                placeholder="Nome"
-                required
-              />
+              <input type="text" id="novo-subtipo-nome" class="form-control" placeholder="Nome" required />
               <button class="btn btn-outline-success" type="submit">+</button>
             </form>
-            <div
-              id="lista-subtipos"
-              class="list-group list-group-flush small"
-              style="height: 200px; overflow-y: auto"
-            ></div>
+            <div id="lista-subtipos" class="list-group list-group-flush small" style="height: 250px; overflow-y: auto"></div>
           </div>
 
-          <div class="col-md-4">
-            <h6 class="fw-bold text-warning">3. Categorias</h6>
-            <p class="small text-muted mb-1">
-              Vinculado a: <b id="lbl-subtipo-selecionado">---</b>
-            </p>
+          <div class="col-md-3">
+            <h6 class="fw-bold text-warning mt-2">3. Categorias</h6>
+            <p class="small text-muted mb-1">Vinculado a: <b id="lbl-subtipo-selecionado">---</b></p>
             <form id="form-categoria" class="input-group input-group-sm mb-2">
-              <input
-                type="text"
-                id="novo-categoria-nome"
-                class="form-control"
-                placeholder="Nome"
-                required
-              />
+              <input type="text" id="novo-categoria-nome" class="form-control" placeholder="Nome" required />
               <button class="btn btn-outline-warning" type="submit">+</button>
             </form>
-            <div
-              id="lista-categorias"
-              class="list-group list-group-flush small"
-              style="height: 200px; overflow-y: auto"
-            ></div>
+            <div id="lista-categorias" class="list-group list-group-flush small" style="height: 250px; overflow-y: auto"></div>
           </div>
+
         </div>
       </div>
     </div>
