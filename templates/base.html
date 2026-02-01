@@ -1,57 +1,86 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Controle Financeiro{% endblock %}</title>
-
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Finanças{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
-    <link
-      href="{{ url_for('static', filename='style.css') }}"
-      rel="stylesheet"
-    />
-  </head>
-  <body class="bg-light">
-    <div class="container mt-4">
-      
-      <div class="row align-items-center mb-4">
-        <div class="col-md-6 d-flex align-items-center gap-3">
-          <h2 class="mb-0">Meu Controle Financeiro</h2>
-          
-          {% if current_user.is_authenticated %}
-            <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-danger">Sair</a>
-          {% endif %}
-        </div>
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+    
+    <style>
+        .tools-container { gap: 10px; }
+        /* Remove a borda azul padrão do input ao clicar */
+        #filtro-mes:focus { box-shadow: none; border-color: #dee2e6; }
         
-        <div class="col-md-6 text-md-end">
-          <label class="fw-bold me-2">Exibindo Mês:</label>
-          <input
-            type="month"
-            id="filtro-mes"
-            class="form-control d-inline-block w-auto shadow-sm"
-            onchange="if(typeof atualizarInterface === 'function') { atualizarInterface() }"
-          />
-        </div>
-      </div>
-      {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <div class="alert alert-warning alert-dismissible fade show">
-                {{ messages[0] }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        {% endif %}
-      {% endwith %}
+        @media (max-width: 768px) {
+            .header-layout { flex-direction: column; text-align: center; gap: 15px; }
+            .tools-container { justify-content: center; flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body class="bg-light">
 
-      {% block content %} {% endblock %}
+    <div class="container mt-4">
+        
+        <div class="d-flex justify-content-between align-items-center mb-4 header-layout p-3 bg-white rounded shadow-sm">
+            
+            <div class="title-area">
+                <h3 class="mb-0 text-primary fw-bold">Finanças</h3>
+            </div>
+
+            <div class="d-flex align-items-center tools-container">
+                
+                <div>
+                    <input 
+                        type="month" 
+                        id="filtro-mes" 
+                        class="form-control border-0 fw-bold text-secondary bg-transparent" 
+                        style="cursor: pointer;"
+                        onchange="if(typeof atualizarInterface === 'function') { atualizarInterface() }"
+                    >
+                </div>
+
+                <div class="vr mx-2 d-none d-md-block text-secondary"></div>
+
+                {% if current_user.is_authenticated %}
+                    <div class="btn-group btn-group-sm shadow-sm" role="group">
+                        <span class="btn btn-light border pe-3 fw-bold text-secondary disabled">
+                            <i class="fa-solid fa-user-circle"></i> {{ current_user.username }}
+                        </span>
+
+                        {% if not current_user.totp_secret %}
+                            <a href="{{ url_for('setup_2fa') }}" class="btn btn-warning text-dark fw-bold" title="Ativar 2FA">
+                                Ativar 2FA
+                            </a>
+                        {% endif %}
+
+                        <a href="{{ url_for('logout') }}" class="btn btn-outline-danger" title="Sair">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'warning' }} alert-dismissible fade show shadow-sm">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %} {% endblock %}
+
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     
     <script>
@@ -65,5 +94,5 @@
             }
         });
     </script>
-  </body>
+</body>
 </html>

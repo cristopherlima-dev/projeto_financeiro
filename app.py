@@ -2,6 +2,10 @@ import os
 import time
 import threading
 import telebot 
+import pyotp
+import qrcode
+from io import BytesIO
+import base64
 from telebot import types
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, send_from_directory, flash, redirect, url_for
@@ -51,12 +55,24 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(200), nullable=False)
     email = db.Column(db.String(100), nullable=True) 
     is_admin = db.Column(db.Boolean, default=False)
+    # NOVA COLUNA: Guarda a chave secreta do 2FA
+    totp_secret = db.Column(db.String(32), nullable=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    # NOVOS MÉTODOS PARA 2FA
+    def get_totp_uri(self):
+        return pyotp.totp.TOTP(self.totp_secret).provisioning_uri(
+            name=self.username, 
+            issuer_name='Financas do Cris'
+        )
+
+    def verify_totp(self, token):
+        return pyotp.totp.TOTP(self.totp_secret).verify(token)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -122,17 +138,93 @@ inicializar_banco()
 # --- ROTAS ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if current_user.is_authenticated: return redirect(url_for('index'))
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+        
     if request.method == 'POST':
-        user = User.query.filter_by(username=request.form.get('username')).first()
-        if user and user.check_password(request.form.get('password')):
-            login_user(user); return redirect(url_for('index'))
-        else: flash('Usuário ou senha inválidos.')
-    return render_template('login.html')
+        username = request.form.get('username')
+        password = request.form.get('password')
+        token_2fa = request.form.get('token_2fa') # Campo novo do formulário
+        
+        user = User.query.filter_by(username=username).first()
+        
+        if user and user.check_password(password):
+            # CASO 1: Usuário tem 2FA ativado
+            if user.totp_secret:
+                if token_2fa:
+                    # Se ele digitou o código, verifica
+                    if user.verify_totp(token_2fa):
+                        login_user(user)
+                        return redirect(url_for('index'))
+                    else:
+                        flash('Código 2FA incorreto.')
+                        return render_template('login.html', step='2fa', username=username, password=password)
+                else:
+                    # Se a senha tá certa mas não mandou token, mostra campo de 2FA
+                    return render_template('login.html', step='2fa', username=username, password=password)
+            
+            # CASO 2: Usuário NÃO tem 2FA (Login normal)
+            else:
+                login_user(user)
+                return redirect(url_for('index'))
+        else:
+            flash('Usuário ou senha inválidos.')
+            
+    return render_template('login.html', step='login')
 
 @app.route('/logout')
 @login_required
 def logout(): logout_user(); return redirect(url_for('login'))
+
+# ==========================================
+#           ROTAS DE 2FA (NOVO)
+# ==========================================
+
+@app.route('/setup-2fa')
+@login_required
+def setup_2fa():
+    # Se o usuário já tem 2FA, não precisa configurar de novo
+    if current_user.totp_secret:
+        flash('A autenticação de dois fatores já está ativada.')
+        return redirect(url_for('index'))
+    
+    # 1. Gera um segredo aleatório se não existir
+    secret = pyotp.random_base32()
+    
+    # 2. Gera a URL para o QR Code
+    # Cria uma instância temporária do usuário só para gerar a URI, 
+    # ou salvamos o secret temporariamente na sessão (vamos simplificar salvando no user mas sem confirmar ainda)
+    
+    # Gera a URL de provisionamento
+    uri = pyotp.totp.TOTP(secret).provisioning_uri(name=current_user.username, issuer_name='Financas do Cris')
+    
+    # 3. Gera a imagem do QR Code
+    img = qrcode.make(uri)
+    buffered = BytesIO()
+    img.save(buffered, format="PNG")
+    img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+    
+    return render_template('setup_2fa.html', secret=secret, qr_code=img_str)
+
+@app.route('/verify-2fa-setup', methods=['POST'])
+@login_required
+def verify_2fa_setup():
+    secret = request.form.get('secret')
+    token = request.form.get('token')
+    
+    totp = pyotp.TOTP(secret)
+    
+    if totp.verify(token):
+        # Código correto! Salva o segredo no banco
+        current_user.totp_secret = secret
+        db.session.commit()
+        flash('✅ 2FA ativado com sucesso!', 'success')
+        return redirect(url_for('index'))
+    else:
+        flash('❌ Código incorreto. Tente novamente.', 'error')
+        return redirect(url_for('setup_2fa'))
+
+# ==========================================
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):

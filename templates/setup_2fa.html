@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Configurar 2FA{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fa-solid fa-shield-halved"></i> Configurar Autenticação de Dois Fatores</h4>
+            </div>
+            <div class="card-body text-center">
+                <p class="text-muted">
+                    1. Baixe o <strong>Google Authenticator</strong> ou <strong>Authy</strong> no seu celular.<br>
+                    2. Escaneie o QR Code abaixo com o aplicativo.
+                </p>
+                
+                <div class="my-4 border p-2 d-inline-block bg-white rounded">
+                    <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code 2FA" style="width: 200px;">
+                </div>
+                
+                <p class="small text-muted">Ou digite este código manualmente: <code>{{ secret }}</code></p>
+
+                <hr>
+
+                <p class="fw-bold">3. Digite o código de 6 números gerado pelo app para confirmar:</p>
+
+                <form action="{{ url_for('verify_2fa_setup') }}" method="POST">
+                    <input type="hidden" name="secret" value="{{ secret }}">
+                    
+                    <div class="mb-3 d-flex justify-content-center">
+                        <input type="text" name="token" class="form-control form-control-lg text-center fw-bold" 
+                               style="max-width: 200px; letter-spacing: 5px;" 
+                               placeholder="000000" required autofocus maxlength="6">
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fa-solid fa-check"></i> Ativar 2FA
+                    </button>
+                    <a href="{{ url_for('index') }}" class="btn btn-link text-muted mt-2">Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
