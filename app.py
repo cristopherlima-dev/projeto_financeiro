@@ -152,13 +152,42 @@ class Vencimento(db.Model):
 def inicializar_banco():
     with app.app_context():
         db.create_all()
-        if not db.session.get(Tipo, 1):
-            db.session.add(Tipo(id=1, nome="Entrada")); db.session.add(Tipo(id=2, nome="Saída"))
         
-        # Cria conta padrão se não existir
+        # 1. Garante os Tipos Básicos
+        if not db.session.get(Tipo, 1):
+            db.session.add(Tipo(id=1, nome="Entrada"))
+            db.session.add(Tipo(id=2, nome="Saída"))
+        
+        # 2. Garante a Conta Padrão
         if not db.session.query(Conta).first():
             db.session.add(Conta(nome="Carteira Principal", tipo="carteira"))
             
+        db.session.commit() # Commita para garantir que os IDs dos Tipos existam
+
+        # 3. Garante Subtipos e Categorias Padrão (Para Pagamento de Fatura)
+        
+        # --- Para ENTRADA (Tipo 1) ---
+        sub_ent = Subtipo.query.filter_by(nome="Transferências", tipo_id=1).first()
+        if not sub_ent:
+            sub_ent = Subtipo(nome="Transferências", tipo_id=1)
+            db.session.add(sub_ent)
+            db.session.commit() # Commita para gerar o ID do subtipo
+            
+        cat_ent = Categoria.query.filter_by(nome="Pagamento de Fatura", subtipo_id=sub_ent.id).first()
+        if not cat_ent:
+            db.session.add(Categoria(nome="Pagamento de Fatura", subtipo_id=sub_ent.id))
+
+        # --- Para SAÍDA (Tipo 2) ---
+        sub_sai = Subtipo.query.filter_by(nome="Transferências", tipo_id=2).first()
+        if not sub_sai:
+            sub_sai = Subtipo(nome="Transferências", tipo_id=2)
+            db.session.add(sub_sai)
+            db.session.commit() # Commita para gerar o ID do subtipo
+
+        cat_sai = Categoria.query.filter_by(nome="Pagamento de Fatura", subtipo_id=sub_sai.id).first()
+        if not cat_sai:
+            db.session.add(Categoria(nome="Pagamento de Fatura", subtipo_id=sub_sai.id))
+
         db.session.commit()
 
 inicializar_banco()
