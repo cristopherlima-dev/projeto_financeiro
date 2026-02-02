@@ -149,21 +149,6 @@
   </div>
 </div>
 
-<div class="modal fade" id="modalConfirmDelete" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-sm modal-dialog-centered">
-    <div class="modal-content border-0 shadow">
-      <div class="modal-body text-center p-4">
-        <div class="text-danger fs-1 mb-3">🗑️</div>
-        <h5 class="mb-3">Tem certeza?</h5>
-        <div class="d-flex justify-content-center gap-2">
-          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" class="btn btn-danger px-4" id="btn-confirm-delete">Excluir</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <div class="modal fade" id="modalPagamentoFatura" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -214,5 +199,6 @@
 {% include 'components/modal_categorias.html' %} 
 {% include 'components/modal.html' %} 
 {% include 'components/modal_manutencao.html' %}
+{% include 'components/modal_feedback.html' %}
 
 {% endblock %}
