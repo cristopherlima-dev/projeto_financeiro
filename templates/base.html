@@ -11,8 +11,7 @@
     
     <style>
         .tools-container { gap: 10px; }
-        /* Remove a borda azul padrão do input ao clicar */
-        #filtro-mes:focus { box-shadow: none; border-color: #dee2e6; }
+        #filtro-mes:focus, #filtro-conta:focus { box-shadow: none; border-color: #dee2e6; }
         
         @media (max-width: 768px) {
             .header-layout { flex-direction: column; text-align: center; gap: 15px; }
@@ -32,6 +31,17 @@
 
             <div class="d-flex align-items-center tools-container">
                 
+                <div>
+                    <select id="filtro-conta" 
+                            class="form-select border-0 fw-bold text-primary bg-transparent" 
+                            style="cursor: pointer; max-width: 180px;" 
+                            onchange="if(typeof atualizarInterface === 'function') { atualizarInterface() }">
+                        <option value="">Todas as Contas</option>
+                        </select>
+                </div>
+
+                <div class="vr mx-2 d-none d-md-block text-secondary"></div>
+
                 <div>
                     <input 
                         type="month" 

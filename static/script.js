@@ -6,10 +6,10 @@ let deleteCallback = null;
 async function init() {
   await carregarTudo();
 
-  // Define mês atual no filtro
+  // Define mês atual no filtro se estiver vazio
   const hoje = new Date();
   const inputMes = document.getElementById("filtro-mes");
-  if(inputMes) {
+  if(inputMes && !inputMes.value) {
       inputMes.value = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
   }
 
@@ -39,7 +39,6 @@ async function carregarSeletorAnos() {
 
 async function carregarTudo() {
   try {
-    // Agora buscamos também as CONTAS
     const [l, t, s, c, cont] = await Promise.all([
       fetch("/api/lancamentos").then((r) => r.json()),
       fetch("/api/config/tipos").then((r) => r.json()),
@@ -51,14 +50,25 @@ async function carregarTudo() {
     dados.tipos = t;
     dados.subtipos = s;
     dados.categorias = c;
-    dados.contas = cont; // Salva as contas na memória
+    dados.contas = cont;
 
     renderConfigLists();
+    renderContaSelector();
     atualizarInterface();
     carregarSeletorAnos();
   } catch (e) {
     console.error(e);
   }
+}
+
+// PREENCHE O FILTRO DE CONTAS NO CABEÇALHO
+function renderContaSelector() {
+    const sel = document.getElementById("filtro-conta");
+    if(!sel) return;
+    const valorAtual = sel.value;
+    sel.innerHTML = '<option value="">Todas as Contas</option>';
+    dados.contas.forEach(c => { sel.innerHTML += `<option value="${c.id}">${c.nome}</option>`; });
+    sel.value = valorAtual;
 }
 
 function renderConfigLists() {
@@ -105,12 +115,11 @@ function renderConfigLists() {
       }
   }
 
-  // 4. Renderiza CONTAS (NOVO)
+  // 4. Renderiza CONTAS (CONFIGURAÇÃO)
   const divContas = document.getElementById("lista-contas");
   if(divContas) {
       divContas.innerHTML = "";
       dados.contas.forEach(c => {
-          // Define um ícone baseado no tipo
           let icone = "💰";
           if(c.tipo === 'cartao_credito') icone = "💳";
           if(c.tipo === 'investimento') icone = "📈";
@@ -124,7 +133,6 @@ function renderConfigLists() {
       });
   }
 
-  // Atualiza labels de seleção
   const tSel = dados.tipos.find((t) => t.id === selConfig.tipo);
   const sSel = dados.subtipos.find((s) => s.id === selConfig.subtipo);
   const lblT = document.getElementById("lbl-tipo-selecionado");
@@ -134,17 +142,11 @@ function renderConfigLists() {
 }
 
 function fmtTipoConta(tipo) {
-    const mapa = {
-        'banco': 'Conta',
-        'cartao_credito': 'Crédito',
-        'vale': 'Vale',
-        'investimento': 'Inv.',
-        'carteira': 'Físico'
-    };
+    const mapa = { 'banco': 'Conta', 'cartao_credito': 'Crédito', 'vale': 'Vale', 'investimento': 'Inv.', 'carteira': 'Físico' };
     return mapa[tipo] || tipo;
 }
 
-// LÓGICA DE SELEÇÃO E EXCLUSÃO
+// LOGICA CONFIG
 function selectTipoConfig(id, e) {
   if (e) e.preventDefault();
   selConfig.tipo = id;
@@ -169,181 +171,167 @@ async function confirmarExclusao(endpoint, id) {
   carregarTudo();
 }
 
-// SUBMISSÃO DOS FORMULÁRIOS DE CONFIGURAÇÃO
+// FORMS CONFIG
 const formSubtipo = document.getElementById("form-subtipo");
 if(formSubtipo) {
     formSubtipo.onsubmit = async (e) => {
       e.preventDefault();
       if (!selConfig.tipo) return alert("Selecione Tipo.");
       await fetch("/api/config/subtipos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nome: document.getElementById("novo-subtipo-nome").value,
-          tipo_id: selConfig.tipo,
-        }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome: document.getElementById("novo-subtipo-nome").value, tipo_id: selConfig.tipo }),
       });
-      document.getElementById("novo-subtipo-nome").value = "";
-      carregarTudo();
+      document.getElementById("novo-subtipo-nome").value = ""; carregarTudo();
     };
 }
-
 const formCategoria = document.getElementById("form-categoria");
 if(formCategoria) {
     formCategoria.onsubmit = async (e) => {
       e.preventDefault();
       if (!selConfig.subtipo) return alert("Selecione Subtipo.");
       await fetch("/api/config/categorias", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nome: document.getElementById("novo-categoria-nome").value,
-          subtipo_id: selConfig.subtipo,
-        }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome: document.getElementById("novo-categoria-nome").value, subtipo_id: selConfig.subtipo }),
       });
-      document.getElementById("novo-categoria-nome").value = "";
-      carregarTudo();
+      document.getElementById("novo-categoria-nome").value = ""; carregarTudo();
     };
 }
-
-// --- LÓGICA PARA ADICIONAR CONTA (NOVO) ---
 const formConta = document.getElementById("form-conta");
 if(formConta) {
     formConta.onsubmit = async (e) => {
       e.preventDefault();
       await fetch("/api/config/contas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nome: document.getElementById("nova-conta-nome").value,
-          tipo: document.getElementById("nova-conta-tipo").value,
-        }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome: document.getElementById("nova-conta-nome").value, tipo: document.getElementById("nova-conta-tipo").value }),
       });
-      document.getElementById("nova-conta-nome").value = "";
-      carregarTudo();
+      document.getElementById("nova-conta-nome").value = ""; carregarTudo();
     };
 }
 
-// PREPARA O MODAL DE LANÇAMENTO (Preenche selects)
+// --- MODAL LANÇAMENTO (CORRIGIDO NOMES DE FUNÇÕES) ---
+
 window.prepararModal = () => {
-  const inpData = document.getElementById("inp-data");
+  const inpData = document.getElementById("input-data");
   if(inpData) inpData.value = new Date().toISOString().split("T")[0];
-  
   const formLanc = document.getElementById("form-lancamento");
   if(formLanc) formLanc.reset();
 
-  // PREENCHE SELECT DE CONTAS (NOVO)
   const selConta = document.getElementById("input-conta");
   if(selConta) {
       selConta.innerHTML = "";
-      dados.contas.forEach(c => {
-          selConta.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
-      });
+      dados.contas.forEach(c => { selConta.innerHTML += `<option value="${c.id}">${c.nome}</option>`; });
   }
-
   carregarTiposNoModal();
 };
 
 function carregarTiposNoModal() {
-  const sel = document.getElementById("inp-tipo");
+  const sel = document.getElementById("input-tipo");
   if(!sel) return;
   sel.innerHTML = '<option value="">Selecione...</option>';
   dados.tipos.forEach(t => (sel.innerHTML += `<option value="${t.id}">${t.nome}</option>`));
   
-  const selSub = document.getElementById("inp-subtipo");
-  const selCat = document.getElementById("inp-categoria");
+  const selSub = document.getElementById("input-subtipo");
+  const selCat = document.getElementById("input-categoria");
   if(selSub) selSub.innerHTML = "";
   if(selCat) selCat.innerHTML = "";
 }
 
-window.carregarSubtiposNoModal = () => {
-  const tid = parseInt(document.getElementById("inp-tipo").value);
-  const sel = document.getElementById("inp-subtipo");
+// RENOMEADO DE carregarSubtiposNoModal PARA atualizarOpcoesFormulario
+window.atualizarOpcoesFormulario = () => {
+  const tid = parseInt(document.getElementById("input-tipo").value);
+  const sel = document.getElementById("input-subtipo");
   if(!sel) return;
   sel.innerHTML = '<option value="">Selecione...</option>';
-  if (tid)
-    dados.subtipos.filter((s) => s.tipo_id === tid).forEach(s => 
-        (sel.innerHTML += `<option value="${s.id}">${s.nome}</option>`)
-    );
+  if (tid) dados.subtipos.filter((s) => s.tipo_id === tid).forEach(s => (sel.innerHTML += `<option value="${s.id}">${s.nome}</option>`));
   
-  const selCat = document.getElementById("inp-categoria");
+  const selCat = document.getElementById("input-categoria");
   if(selCat) selCat.innerHTML = "";
 };
 
-window.carregarCategoriasNoModal = () => {
-  const sid = parseInt(document.getElementById("inp-subtipo").value);
-  const sel = document.getElementById("inp-categoria");
+// RENOMEADO DE carregarCategoriasNoModal PARA filtrarCategoriasNoLancamento
+window.filtrarCategoriasNoLancamento = () => {
+  const sid = parseInt(document.getElementById("input-subtipo").value);
+  const sel = document.getElementById("input-categoria");
   if(!sel) return;
   sel.innerHTML = '<option value="">Selecione...</option>';
-  if (sid)
-    dados.categorias.filter((c) => c.subtipo_id === sid).forEach(c => 
-        (sel.innerHTML += `<option value="${c.id}">${c.nome}</option>`)
-    );
+  if (sid) dados.categorias.filter((c) => c.subtipo_id === sid).forEach(c => (sel.innerHTML += `<option value="${c.id}">${c.nome}</option>`));
 };
 
-// SALVAR LANÇAMENTO
 const formLanc = document.getElementById("form-lancamento");
 if(formLanc) {
     formLanc.onsubmit = async (e) => {
       e.preventDefault();
       const fd = new FormData();
-      fd.append("data", document.getElementById("inp-data").value);
-      fd.append("descricao", document.getElementById("inp-desc").value);
-      fd.append("valor", document.getElementById("inp-valor").value);
-      fd.append("tipo_id", document.getElementById("inp-tipo").value);
-      fd.append("subtipo_id", document.getElementById("inp-subtipo").value);
+      fd.append("data", document.getElementById("input-data").value);
+      fd.append("descricao", document.getElementById("input-descricao").value);
+      fd.append("valor", document.getElementById("input-valor").value);
+      fd.append("tipo_id", document.getElementById("input-tipo").value);
+      fd.append("subtipo_id", document.getElementById("input-subtipo").value);
+      fd.append("categoria_id", document.getElementById("input-categoria").value);
+      fd.append("conta_id", document.getElementById("input-conta").value);
       
-      const catVal = document.getElementById("inp-categoria").value;
-      fd.append("categoria_id", catVal);
-
-      // ENVIA A CONTA SELECIONADA (NOVO)
-      const contaVal = document.getElementById("input-conta").value;
-      fd.append("conta_id", contaVal);
-
-      const arq = document.getElementById("inp-arquivo");
+      const arq = document.getElementById("input-arquivo");
       if (arq && arq.files.length) fd.append("arquivo", arq.files[0]);
       
       if ((await fetch("/api/lancamentos", { method: "POST", body: fd })).ok) {
         bootstrap.Modal.getInstance(document.getElementById("modalLancamento")).hide();
         carregarTudo();
-      } else {
-          alert("Erro ao salvar.");
-      }
+      } else { alert("Erro ao salvar."); }
     };
 }
 
-// ATUALIZA A TABELA E GRÁFICOS
+// ATUALIZA INTERFACE COM LÓGICA DE CARTÃO DE CRÉDITO
 function atualizarInterface() {
   const filtroMes = document.getElementById("filtro-mes");
+  const filtroConta = document.getElementById("filtro-conta"); 
   if(!filtroMes) return;
   
   const mes = filtroMes.value;
-  const lista = dados.lancamentos.filter((l) => l.data.startsWith(mes));
+  const contaId = filtroConta ? filtroConta.value : ""; 
+
+  // Filtra lançamentos
+  const lista = dados.lancamentos.filter((l) => {
+      const mesmoMes = l.data.startsWith(mes);
+      const mesmaConta = contaId === "" || String(l.conta_id) === contaId;
+      return mesmoMes && mesmaConta;
+  });
+
   const tbody = document.getElementById("tabela-lancamentos-body");
-  
   if(tbody) {
       tbody.innerHTML = "";
-      let tot = { entOk: 0, entPen: 0, saiOk: 0, saiPen: 0 };
       
+      let totalEntradas = 0;
+      let totalSaidas = 0;
+      let saldoDisponivel = 0; // Bancos, Carteira, Vale
+      let faturaCartao = 0;    // Cartão de Crédito
+
       lista.sort((a, b) => new Date(b.data) - new Date(a.data));
       
       lista.forEach((l) => {
-        if (l.tipo === "Entrada") {
-          if (l.efetivado) tot.entOk += l.valor; else tot.entPen += l.valor;
-        } else {
-          if (l.efetivado) tot.saiOk += l.valor; else tot.saiPen += l.valor;
+        const conta = dados.contas.find(c => c.id === l.conta_id);
+        const ehCredito = conta && conta.tipo === 'cartao_credito';
+        
+        if (l.efetivado) {
+            if (l.tipo === "Entrada") totalEntradas += l.valor;
+            else totalSaidas += l.valor;
+            
+            if (ehCredito) {
+                if (l.tipo === 'Saída') faturaCartao += l.valor;
+                else faturaCartao -= l.valor; 
+            } else {
+                if (l.tipo === 'Entrada') saldoDisponivel += l.valor;
+                else saldoDisponivel -= l.valor;
+            }
         }
-        
+
         const cor = l.tipo === "Entrada" ? "text-success" : "text-danger";
-        const anexoHtml = l.comprovante
-          ? `<a href="/uploads/${l.comprovante}" target="_blank" class="text-decoration-none ms-2" title="Abrir Anexo">📎</a>`
-          : "";
+        const anexoHtml = l.comprovante ? `<a href="/uploads/${l.comprovante}" target="_blank" class="text-decoration-none ms-2" title="Abrir Anexo">📎</a>` : "";
+        let iconConta = ehCredito ? '💳' : '🏦';
         
-        // --- ADICIONADO CAMPO DA CONTA NA TABELA ---
         tbody.innerHTML += `<tr>
             <td><input type="checkbox" onchange="toggleStatus(${l.id})" ${l.efetivado ? "checked" : ""}></td>
             <td>${l.data.split("-").reverse().join("/")}</td>
-            <td><span class="badge bg-light text-dark border">${l.conta || '-'}</span></td>
+            <td><span class="badge bg-light text-dark border">${iconConta} ${l.conta || 'Geral'}</span></td>
             <td>${l.descricao} ${anexoHtml}</td>
             <td>${l.tipo}</td>
             <td>${l.subtipo}</td>
@@ -355,14 +343,14 @@ function atualizarInterface() {
 
       // Atualiza Cards
       const setTxt = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = fmtMoeda(val); };
-      setTxt("card-ent-ok", tot.entOk);
-      setTxt("card-ent-pend", tot.entPen);
-      setTxt("card-sai-ok", tot.saiOk);
-      setTxt("card-sai-pend", tot.saiPen);
-      setTxt("card-saldo", tot.entOk - tot.saiOk);
-
-      drawChartBalanco(tot.entOk, tot.saiOk);
       
+      setTxt("card-saldo-disp", saldoDisponivel);
+      setTxt("card-fatura", faturaCartao);
+      setTxt("card-ent-geral", totalEntradas);
+      setTxt("card-sai-geral", totalSaidas);
+      setTxt("card-saldo-final", saldoDisponivel - faturaCartao);
+
+      drawChartBalanco(totalEntradas, totalSaidas);
       const ef = lista.filter((l) => l.efetivado);
       drawChart("chartEntSub", ef, "Entrada", "subtipo");
       drawChart("chartEntCat", ef, "Entrada", "categoria");
@@ -371,29 +359,17 @@ function atualizarInterface() {
   }
 }
 
-// ... (RESTANTE DAS FUNÇÕES DE GRÁFICO E VENCIMENTO PERMANECEM IGUAIS)
-// Vou omitir as funções drawChartBalanco, drawChart, toggleStatus, delLanc, carregarVencimentos, etc. 
-// pois elas não mudam a lógica, apenas a renderização dos dados já filtrados.
-// Mas para garantir que não quebre nada ao copiar e colar, vou colocar as funções essenciais de volta abaixo.
-
+// ... (RESTO IGUAL)
 function drawChartBalanco(e, s) {
   const ctx = document.getElementById("chartBalanco");
   if (!ctx) return;
   if (charts["chartBalanco"]) charts["chartBalanco"].destroy();
   charts["chartBalanco"] = new Chart(ctx, {
     type: "pie",
-    data: {
-      labels: ["Entradas", "Saídas"],
-      datasets: [{ data: [e, s], backgroundColor: ["#198754", "#dc3545"] }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: "bottom" } },
-    },
+    data: { labels: ["Entradas", "Saídas"], datasets: [{ data: [e, s], backgroundColor: ["#198754", "#dc3545"] }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } },
   });
 }
-
 function drawChart(id, d, f, c) {
   const ctx = document.getElementById(id);
   if (!ctx) return;
@@ -403,30 +379,13 @@ function drawChart(id, d, f, c) {
   if (charts[id]) charts[id].destroy();
   charts[id] = new Chart(ctx, {
     type: "doughnut",
-    data: {
-      labels: Object.keys(g),
-      datasets: [{ data: Object.values(g), backgroundColor: ["#0d6efd", "#6610f2", "#d63384", "#dc3545", "#ffc107", "#198754", "#20c997", "#0dcaf0"] }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: "bottom" } },
-    },
+    data: { labels: Object.keys(g), datasets: [{ data: Object.values(g), backgroundColor: ["#0d6efd", "#6610f2", "#d63384", "#dc3545", "#ffc107", "#198754", "#20c997", "#0dcaf0"] }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } },
   });
 }
+async function toggleStatus(id) { await fetch(`/api/lancamentos/${id}/status`, { method: "PATCH" }); carregarTudo(); }
+async function delLanc(id) { showConfirmDelete(async () => { await fetch(`/api/lancamentos/${id}`, { method: "DELETE" }); carregarTudo(); }); }
 
-async function toggleStatus(id) {
-  await fetch(`/api/lancamentos/${id}/status`, { method: "PATCH" });
-  carregarTudo();
-}
-async function delLanc(id) {
-  showConfirmDelete(async () => {
-    await fetch(`/api/lancamentos/${id}`, { method: "DELETE" });
-    carregarTudo();
-  });
-}
-
-// VENCIMENTOS
 async function carregarVencimentos() {
   try {
     const l = await fetch("/api/vencimentos").then((r) => r.json());
@@ -441,41 +400,26 @@ async function carregarVencimentos() {
     }
   } catch (e) { console.error(e); }
 }
-async function toggleVencimento(id) {
-  await fetch(`/api/vencimentos/${id}/toggle`, { method: "PATCH" });
-  carregarVencimentos();
-}
-async function delVenc(id) {
-  showConfirmDelete(async () => {
-    await fetch(`/api/vencimentos/${id}`, { method: "DELETE" });
-    carregarVencimentos();
-  });
-}
+async function toggleVencimento(id) { await fetch(`/api/vencimentos/${id}/toggle`, { method: "PATCH" }); carregarVencimentos(); }
+async function delVenc(id) { showConfirmDelete(async () => { await fetch(`/api/vencimentos/${id}`, { method: "DELETE" }); carregarVencimentos(); }); }
 
 const fV = document.getElementById("form-vencimento");
-if (fV)
-  fV.addEventListener("submit", async (e) => {
+if (fV) fV.addEventListener("submit", async (e) => {
     e.preventDefault();
     const d = {
-      descricao: document.getElementById("venc-descricao").value,
-      tipo: document.getElementById("venc-tipo").value,
+      descricao: document.getElementById("venc-descricao").value, tipo: document.getElementById("venc-tipo").value,
       dia: document.getElementById("venc-tipo").value === "fixo" ? parseInt(document.getElementById("venc-dia").value) : null,
       data_vencimento: document.getElementById("venc-tipo").value === "variavel" ? document.getElementById("venc-data").value : null,
     };
     if ((await fetch("/api/vencimentos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) })).ok) {
-      fV.reset();
-      bootstrap.Modal.getInstance(document.getElementById("modalVencimento")).hide();
-      carregarVencimentos();
+      fV.reset(); bootstrap.Modal.getInstance(document.getElementById("modalVencimento")).hide(); carregarVencimentos();
     }
-  });
-
+});
 window.alternarCamposVencimento = () => {
   const t = document.getElementById("venc-tipo").value;
   document.getElementById("div-dia-fixo").classList.toggle("d-none", t !== "fixo");
   document.getElementById("div-data-variavel").classList.toggle("d-none", t !== "variavel");
 };
-
-// PLANEJAMENTO
 async function carregarPlanejamento() {
   const elAno = document.getElementById("filtro-ano-plan");
   const ano = elAno ? elAno.value : new Date().getFullYear();
@@ -484,7 +428,6 @@ async function carregarPlanejamento() {
   const tbody = document.getElementById("tbody-planejamento");
   if(!tbody) return;
   tbody.innerHTML = "";
-
   const desenharSecao = (nomeTipo, corHeader) => {
     if (!plan[nomeTipo]) return;
     tbody.innerHTML += `<tr class="table-${corHeader}"><td colspan="14" class="fw-bold text-start text-uppercase">${nomeTipo}</td></tr>`;
@@ -499,34 +442,21 @@ async function carregarPlanejamento() {
       }
     }
   };
-  desenharSecao("Entrada", "success");
-  desenharSecao("Saída", "danger");
+  desenharSecao("Entrada", "success"); desenharSecao("Saída", "danger");
 }
-
-// HELPERS
 function showConfirmDelete(callback) {
-  deleteCallback = callback;
-  const el = document.getElementById("modalConfirmDelete");
-  if(el) new bootstrap.Modal(el).show();
+  deleteCallback = callback; const el = document.getElementById("modalConfirmDelete"); if(el) new bootstrap.Modal(el).show();
 }
 const btnConfDel = document.getElementById("btn-confirm-delete");
 if(btnConfDel) btnConfDel.onclick = () => {
-  if (deleteCallback) deleteCallback();
-  bootstrap.Modal.getInstance(document.getElementById("modalConfirmDelete")).hide();
+  if (deleteCallback) deleteCallback(); bootstrap.Modal.getInstance(document.getElementById("modalConfirmDelete")).hide();
 };
-
 window.fmtMoeda = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 function fmtMoedaSimples(v) { return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+window.atualizarInterface = atualizarInterface; window.toggleVencimento = toggleVencimento; window.carregarPlanejamento = carregarPlanejamento; window.carregarSeletorAnos = carregarSeletorAnos; window.delLanc = delLanc; window.delVenc = delVenc; window.selectTipoConfig = selectTipoConfig; window.selectSubtipoConfig = selectSubtipoConfig; window.prepararExclusao = prepararExclusao; window.confirmarExclusao = confirmarExclusao;
 
-window.atualizarInterface = atualizarInterface;
-window.toggleVencimento = toggleVencimento;
-window.carregarPlanejamento = carregarPlanejamento;
-window.carregarSeletorAnos = carregarSeletorAnos;
-window.delLanc = delLanc;
-window.delVenc = delVenc;
-window.selectTipoConfig = selectTipoConfig;
-window.selectSubtipoConfig = selectSubtipoConfig;
-window.prepararExclusao = prepararExclusao;
-window.confirmarExclusao = confirmarExclusao;
+// EXPORTEI AS NOVAS FUNÇÕES PARA O HTML CONSEGUIR CHAMAR
+window.atualizarOpcoesFormulario = atualizarOpcoesFormulario;
+window.filtrarCategoriasNoLancamento = filtrarCategoriasNoLancamento;
 
 init();

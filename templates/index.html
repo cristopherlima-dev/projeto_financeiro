@@ -53,43 +53,44 @@ content %}
 <div class="tab-content">
   <div class="tab-pane fade show active" id="dashboard-pane">
     <div class="row text-center g-2 mb-4">
-      <div class="col">
-        <div class="card bg-success text-white h-100 shadow-sm">
-          <div class="card-body p-2">
-            <small>Entradas (Recebidas)</small>
-            <h5 id="card-ent-ok">R$ 0,00</h5>
-          </div>
-        </div>
-      </div>
-      <div class="col">
-        <div class="card bg-success-subtle text-success h-100 shadow-sm border-success">
-          <div class="card-body p-2">
-            <small>Entradas (A Receber)</small>
-            <h5 id="card-ent-pend">R$ 0,00</h5>
-          </div>
-        </div>
-      </div>
-      <div class="col">
-        <div class="card bg-danger text-white h-100 shadow-sm">
-          <div class="card-body p-2">
-            <small>Saídas (Pagas)</small>
-            <h5 id="card-sai-ok">R$ 0,00</h5>
-          </div>
-        </div>
-      </div>
-      <div class="col">
-        <div class="card bg-danger-subtle text-danger h-100 shadow-sm border-danger">
-          <div class="card-body p-2">
-            <small>Saídas (A Pagar)</small>
-            <h5 id="card-sai-pend">R$ 0,00</h5>
-          </div>
-        </div>
-      </div>
-      <div class="col">
+      
+      <div class="col-md-4 col-6">
         <div class="card bg-primary text-white h-100 shadow-sm">
           <div class="card-body p-2">
-            <small>Saldo Real</small>
-            <h5 id="card-saldo">R$ 0,00</h5>
+            <small><i class="fa-solid fa-building-columns"></i> Saldo Disponível</small>
+            <h4 id="card-saldo-disp" class="fw-bold mt-1">R$ 0,00</h4>
+            <small class="opacity-75" style="font-size: 0.7em;">Bancos + Carteira + Vales</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4 col-6">
+        <div class="card bg-warning text-dark h-100 shadow-sm">
+          <div class="card-body p-2">
+            <small><i class="fa-solid fa-credit-card"></i> Fatura Atual</small>
+            <h4 id="card-fatura" class="fw-bold mt-1">R$ 0,00</h4>
+             <small class="opacity-75" style="font-size: 0.7em;">Gasto no Crédito</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4 col-12">
+        <div class="card bg-dark text-white h-100 shadow-sm border-0">
+          <div class="card-body p-2 d-flex justify-content-around align-items-center">
+            <div>
+                <small class="text-success fw-bold">Entradas</small>
+                <div id="card-ent-geral" class="fw-bold">R$ 0,00</div>
+            </div>
+            <div class="vr bg-secondary opacity-25"></div>
+            <div>
+                <small class="text-danger fw-bold">Saídas</small>
+                <div id="card-sai-geral" class="fw-bold">R$ 0,00</div>
+            </div>
+             <div class="vr bg-secondary opacity-25"></div>
+            <div>
+                <small class="text-info fw-bold">Saldo Final</small>
+                <div id="card-saldo-final" class="fw-bold">R$ 0,00</div>
+            </div>
           </div>
         </div>
       </div>
