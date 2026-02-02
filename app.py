@@ -8,7 +8,7 @@ from io import BytesIO
 import base64
 from telebot import types
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify, send_from_directory, flash, redirect, url_for
+from flask import Flask, render_template, request, jsonify, send_from_directory, flash, redirect, url_for, send_file
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -400,6 +400,65 @@ def get_anos():
     q = db.session.query(func.substr(Lancamento.data, 1, 4)).distinct().all(); anos = [int(a[0]) for a in q if a[0]]; 
     if not anos: anos.append(datetime.now().year)
     return jsonify(sorted(list(set(anos))))
+
+# --- ROTAS DE MANUTENÇÃO (BACKUP / RESTORE / RESET) ---
+
+@app.route('/api/manutencao/backup', methods=['GET'])
+@login_required
+def download_backup():
+    try:
+        # Gera um nome com a data atual: backup_financeiro_2023-10-27.db
+        nome_arquivo = f"backup_financeiro_{datetime.now().strftime('%Y-%m-%d')}.db"
+        return send_file(db_path, as_attachment=True, download_name=nome_arquivo)
+    except Exception as e:
+        return jsonify({"erro": f"Erro ao gerar backup: {str(e)}"}), 500
+
+@app.route('/api/manutencao/restore', methods=['POST'])
+@login_required
+def restore_backup():
+    if 'arquivo' not in request.files:
+        return jsonify({"erro": "Nenhum arquivo enviado"}), 400
+    
+    file = request.files['arquivo']
+    if file.filename == '':
+        return jsonify({"erro": "Arquivo vazio"}), 400
+
+    try:
+        # Remove a sessão atual para liberar o arquivo do banco
+        db.session.remove()
+        
+        # Sobrescreve o banco de dados atual
+        file.save(db_path)
+        
+        return jsonify({"msg": "Backup restaurado com sucesso!"})
+    except Exception as e:
+        return jsonify({"erro": f"Erro ao restaurar: {str(e)}"}), 500
+
+@app.route('/api/manutencao/reset', methods=['DELETE'])
+@login_required
+def reset_sistema():
+    try:
+        # Apaga dados em ordem para respeitar chaves estrangeiras
+        db.session.query(Lancamento).delete()
+        db.session.query(Vencimento).delete()
+        db.session.query(Categoria).delete()
+        db.session.query(Subtipo).delete()
+        
+        # Apaga contas (exceto se quiser manter a padrão, mas o inicializar_banco recria)
+        db.session.query(Conta).delete()
+        
+        # Opcional: Apagar Tipos se quiser resetar tudo mesmo (o inicializar recria)
+        # db.session.query(Tipo).delete() 
+        
+        db.session.commit()
+        
+        # Recria as configurações iniciais (Tipos básicos e Conta Carteira)
+        inicializar_banco()
+        
+        return jsonify({"msg": "Sistema resetado com sucesso!"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"erro": f"Erro ao resetar: {str(e)}"}), 500
 
 if __name__ == "__main__":
     t = threading.Thread(target=iniciar_bot); t.daemon = True; t.start()

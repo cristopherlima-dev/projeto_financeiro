@@ -1,0 +1,47 @@
+<div class="modal fade" id="modalManutencao" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-screwdriver-wrench"></i> Manutenção do Sistema</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        
+        <div class="card mb-3 border-primary">
+            <div class="card-body">
+                <h6 class="fw-bold text-primary"><i class="fa-solid fa-download"></i> Backup (Salvar Dados)</h6>
+                <p class="small text-muted mb-2">Baixe uma cópia segura de todos os seus lançamentos e configurações.</p>
+                <a href="/api/manutencao/backup" target="_blank" class="btn btn-outline-primary w-100 fw-bold">
+                    Baixar Banco de Dados (.db)
+                </a>
+            </div>
+        </div>
+
+        <div class="card mb-3 border-warning">
+            <div class="card-body">
+                <h6 class="fw-bold text-warning"><i class="fa-solid fa-upload"></i> Restaurar Backup</h6>
+                <p class="small text-muted mb-2">Selecione um arquivo de backup (.db) para recuperar seus dados.</p>
+                
+                <form id="form-restore" class="input-group">
+                    <input type="file" id="arquivo-restore" class="form-control" accept=".db" required>
+                    <button class="btn btn-warning fw-bold" type="submit">Restaurar</button>
+                </form>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="card border-danger bg-danger-subtle">
+            <div class="card-body">
+                <h6 class="fw-bold text-danger"><i class="fa-solid fa-triangle-exclamation"></i> Zona de Perigo</h6>
+                <p class="small text-danger mb-2">Apagar TODOS os lançamentos, categorias e contas. O usuário e senha serão mantidos.</p>
+                <button class="btn btn-danger w-100 fw-bold" onclick="confirmarReset()">
+                    <i class="fa-solid fa-trash"></i> FORMATAR SISTEMA
+                </button>
+            </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

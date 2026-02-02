@@ -272,4 +272,56 @@ window.atualizarOpcoesFormulario = atualizarOpcoesFormulario;
 window.filtrarCategoriasNoLancamento = filtrarCategoriasNoLancamento;
 window.abrirModalPagamento = abrirModalPagamento;
 
+// --- LÓGICA DE MANUTENÇÃO ---
+
+// 1. Restaurar Backup
+const formRestore = document.getElementById("form-restore");
+if(formRestore) {
+    formRestore.onsubmit = async (e) => {
+        e.preventDefault();
+        if(!confirm("⚠️ ATENÇÃO: Isso irá substituir todos os dados atuais pelos do backup. Deseja continuar?")) return;
+
+        const fileInput = document.getElementById("arquivo-restore");
+        const fd = new FormData();
+        fd.append("arquivo", fileInput.files[0]);
+
+        try {
+            const res = await fetch("/api/manutencao/restore", { method: "POST", body: fd });
+            const json = await res.json();
+            
+            if (res.ok) {
+                alert("✅ " + json.msg);
+                window.location.reload(); // Recarrega para pegar os dados novos
+            } else {
+                alert("❌ Erro: " + json.erro);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Erro ao conectar com o servidor.");
+        }
+    };
+}
+
+// 2. Resetar Sistema (Apagar Tudo)
+window.confirmarReset = async () => {
+    // Confirmação Dupla para evitar acidentes
+    if(!confirm("🟥 PERIGO: Você tem certeza que deseja APAGAR TUDO? Essa ação não pode ser desfeita!")) return;
+    if(!confirm("🟥 Confirme novamente: Todos os lançamentos serão perdidos. Continuar?")) return;
+
+    try {
+        const res = await fetch("/api/manutencao/reset", { method: "DELETE" });
+        const json = await res.json();
+        
+        if (res.ok) {
+            alert("✅ " + json.msg);
+            window.location.reload();
+        } else {
+            alert("❌ Erro: " + json.erro);
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao resetar sistema.");
+    }
+};
+
 init();

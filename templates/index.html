@@ -1,7 +1,11 @@
-{% extends "base.html" %} {% block title %}Dashboard Pro{% endblock %} {% block
-content %}
+{% extends "base.html" %} 
 
-<div class="d-flex justify-content-between mb-3">
+{% block title %}Dashboard Pro{% endblock %} 
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  
   <ul class="nav nav-tabs border-0" id="myTab" role="tablist">
     <li class="nav-item">
       <button class="nav-link active fw-bold" data-bs-toggle="tab" data-bs-target="#dashboard-pane">📊 Dashboard</button>
@@ -16,10 +20,20 @@ content %}
       <button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#planejamento-pane" onclick="carregarPlanejamento()">📅 Planejamento Anual</button>
     </li>
   </ul>
-  <button class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#modalConfig">⚙️ Configurar</button>
+
+  <div class="d-flex gap-2">
+      <button class="btn btn-light border text-secondary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalConfig" title="Configurações">
+          <i class="fa-solid fa-gear"></i>
+      </button>
+      <button class="btn btn-light border text-secondary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalManutencao" title="Manutenção e Backup">
+          <i class="fa-solid fa-screwdriver-wrench"></i>
+      </button>
+  </div>
+
 </div>
 
 <div class="tab-content">
+  
   <div class="tab-pane fade show active" id="dashboard-pane">
     <div class="row text-center g-2 mb-4">
       
@@ -199,5 +213,6 @@ content %}
 {% include 'components/modal_vencimento.html' %} 
 {% include 'components/modal_categorias.html' %} 
 {% include 'components/modal.html' %} 
+{% include 'components/modal_manutencao.html' %}
 
 {% endblock %}
