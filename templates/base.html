@@ -10,12 +10,12 @@
     <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
     
     <style>
-        .tools-container { gap: 10px; }
+        /* Remove o outline padrão ao clicar nos inputs para ficar mais limpo */
         #filtro-mes:focus, #filtro-conta:focus { box-shadow: none; border-color: #dee2e6; }
         
+        /* Ajustes específicos para mobile se necessário */
         @media (max-width: 768px) {
-            .header-layout { flex-direction: column; text-align: center; gap: 15px; }
-            .tools-container { justify-content: center; flex-wrap: wrap; }
+            .tools-container { width: 100%; }
         }
     </style>
 </head>
@@ -23,18 +23,18 @@
 
     <div class="container mt-4">
         
-        <div class="d-flex justify-content-between align-items-center mb-4 header-layout p-3 bg-white rounded shadow-sm">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 header-layout p-3 bg-white rounded shadow-sm gap-3">
             
-            <div class="title-area">
-                <h3 class="mb-0 text-primary fw-bold">Finanças</h3>
+            <div class="title-area w-100 w-md-auto text-center text-md-start">
+                <h3 class="mb-0 text-primary fw-bold"><i class="fa-solid fa-wallet"></i> Finanças</h3>
             </div>
 
-            <div class="d-flex align-items-center tools-container">
+            <div class="d-flex flex-column flex-md-row align-items-center tools-container gap-2 w-100 w-md-auto">
                 
-                <div>
+                <div class="w-100 w-md-auto">
                     <select id="filtro-conta" 
-                            class="form-select border-0 fw-bold text-primary bg-transparent" 
-                            style="cursor: pointer; max-width: 180px;" 
+                            class="form-select border-0 fw-bold text-primary bg-light w-100" 
+                            style="cursor: pointer; min-width: 180px;" 
                             onchange="if(typeof atualizarInterface === 'function') { atualizarInterface() }">
                         <option value="">Todas as Contas</option>
                         </select>
@@ -42,11 +42,11 @@
 
                 <div class="vr mx-2 d-none d-md-block text-secondary"></div>
 
-                <div>
+                <div class="w-100 w-md-auto">
                     <input 
                         type="month" 
                         id="filtro-mes" 
-                        class="form-control border-0 fw-bold text-secondary bg-transparent" 
+                        class="form-control border-0 fw-bold text-secondary bg-light w-100" 
                         style="cursor: pointer;"
                         onchange="if(typeof atualizarInterface === 'function') { atualizarInterface() }"
                     >
@@ -55,8 +55,8 @@
                 <div class="vr mx-2 d-none d-md-block text-secondary"></div>
 
                 {% if current_user.is_authenticated %}
-                    <div class="btn-group btn-group-sm shadow-sm" role="group">
-                        <span class="btn btn-light border pe-3 fw-bold text-secondary disabled">
+                    <div class="btn-group w-100 shadow-sm" role="group">
+                        <span class="btn btn-light border pe-3 fw-bold text-secondary disabled flex-grow-1 flex-md-grow-0">
                             <i class="fa-solid fa-user-circle"></i> {{ current_user.username }}
                         </span>
 

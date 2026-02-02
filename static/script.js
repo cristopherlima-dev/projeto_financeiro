@@ -23,6 +23,7 @@ async function init() {
 
 function mostrarAviso(msg, tipo = 'info') {
     const el = document.getElementById('modalAviso');
+    if (!el) return alert(msg); // Fallback caso o modal não exista
     const modal = new bootstrap.Modal(el);
     
     const header = document.getElementById('modal-aviso-header');
@@ -52,6 +53,10 @@ function mostrarAviso(msg, tipo = 'info') {
 
 function mostrarConfirmacao(titulo, msg, callback, corBotao = 'btn-primary', textoBotao = 'Confirmar') {
     const el = document.getElementById('modalConfirmacaoGenerica');
+    if (!el) {
+        if(confirm(msg)) callback(); // Fallback
+        return;
+    }
     const modal = new bootstrap.Modal(el);
 
     document.getElementById('modal-conf-titulo').innerText = titulo;
@@ -167,7 +172,6 @@ function selectSubtipoConfig(id, e) { if (e) e.preventDefault(); selConfig.subti
 // EXCLUSÃO GENÉRICA DE CONFIGURAÇÃO (Agora usando Modal)
 function prepararExclusao(el, endpoint, id, event) { 
     event.stopPropagation(); 
-    // Usa o novo modal de confirmação
     mostrarConfirmacao(
         "Excluir Item?", 
         "Deseja realmente remover este item? Lançamentos vinculados podem ficar sem classificação.", 
@@ -246,7 +250,6 @@ if(formLanc) {
       if (res.ok) { 
           bootstrap.Modal.getInstance(document.getElementById("modalLancamento")).hide(); 
           carregarTudo(); 
-          // Feedback sutil ou nenhum se quiser agilidade, mas um aviso de erro é vital
       } else { 
           mostrarAviso("Erro ao salvar lançamento.", "erro"); 
       }
@@ -317,6 +320,9 @@ if(formPag) {
     };
 }
 
+// =========================================================
+// ATUALIZAÇÃO DA INTERFACE (TABELA RESPONSIVA)
+// =========================================================
 function atualizarInterface() {
   const filtroMes = document.getElementById("filtro-mes"); const filtroConta = document.getElementById("filtro-conta"); if(!filtroMes) return;
   const mes = filtroMes.value; const contaId = filtroConta ? filtroConta.value : ""; 
@@ -333,9 +339,26 @@ function atualizarInterface() {
             if (ehCredito) { if (l.tipo === 'Saída') faturaCartao += l.valor; else faturaCartao -= l.valor; } 
             else { if (l.tipo === 'Entrada') saldoDisponivel += l.valor; else saldoDisponivel -= l.valor; }
         }
-        const cor = l.tipo === "Entrada" ? "text-success" : "text-danger"; const anexoHtml = l.comprovante ? `<a href="/uploads/${l.comprovante}" target="_blank" class="text-decoration-none ms-2" title="Abrir Anexo">📎</a>` : ""; let iconConta = ehCredito ? '💳' : '🏦';
-        tbody.innerHTML += `<tr><td><input type="checkbox" onchange="toggleStatus(${l.id})" ${l.efetivado ? "checked" : ""}></td><td>${l.data.split("-").reverse().join("/")}</td><td><span class="badge bg-light text-dark border">${iconConta} ${l.conta || 'Geral'}</span></td><td>${l.descricao} ${anexoHtml}</td><td>${l.tipo}</td><td>${l.subtipo}</td><td>${l.categoria}</td><td class="${cor}">${fmtMoeda(l.valor)}</td><td><button class="btn btn-sm btn-outline-danger border-0" onclick="delLanc(${l.id})">🗑️</button></td></tr>`;
+        const cor = l.tipo === "Entrada" ? "text-success" : "text-danger"; 
+        const anexoHtml = l.comprovante ? `<a href="/uploads/${l.comprovante}" target="_blank" class="text-decoration-none ms-2" title="Abrir Anexo">📎</a>` : ""; 
+        let iconConta = ehCredito ? '💳' : '🏦';
+        
+        // GERAÇÃO DAS LINHAS DA TABELA (RESPONSIVA)
+        // Note as classes 'd-none d-md-table-cell' para esconder colunas no mobile
+        tbody.innerHTML += `
+        <tr>
+            <td><input type="checkbox" class="form-check-input" onchange="toggleStatus(${l.id})" ${l.efetivado ? "checked" : ""}></td>
+            <td class="text-nowrap">${l.data.split("-").reverse().join("/")}</td>
+            <td><span class="badge bg-light text-dark border text-truncate" style="max-width: 90px; display: inline-block; vertical-align: middle;">${iconConta} ${l.conta || 'Geral'}</span></td>
+            <td class="text-truncate" style="max-width: 140px;" title="${l.descricao}">${l.descricao} ${anexoHtml}</td>
+            <td class="d-none d-md-table-cell">${l.tipo}</td>
+            <td class="d-none d-md-table-cell">${l.subtipo}</td>
+            <td class="d-none d-sm-table-cell text-truncate" style="max-width: 100px;">${l.categoria}</td>
+            <td class="${cor} fw-bold text-nowrap">${fmtMoeda(l.valor)}</td>
+            <td><button class="btn btn-sm btn-outline-danger border-0 py-0" onclick="delLanc(${l.id})"><i class="fa-solid fa-trash"></i></button></td>
+        </tr>`;
       });
+      
       const setTxt = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = fmtMoeda(val); };
       setTxt("card-saldo-disp", saldoDisponivel); setTxt("card-fatura", faturaCartao); setTxt("card-ent-geral", totalEntradas); setTxt("card-sai-geral", totalSaidas); setTxt("card-saldo-final", saldoDisponivel - faturaCartao);
       
