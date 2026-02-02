@@ -1,3 +1,4 @@
+/* static/script.js */
 let dados = { lancamentos: [], tipos: [], subtipos: [], categorias: [], contas: [] };
 let charts = {};
 let selConfig = { tipo: null, subtipo: null };
@@ -111,6 +112,8 @@ if(formConta) { formConta.onsubmit = async (e) => { e.preventDefault(); await fe
 window.prepararModal = () => {
   const inpData = document.getElementById("input-data"); if(inpData) inpData.value = new Date().toISOString().split("T")[0];
   const formLanc = document.getElementById("form-lancamento"); if(formLanc) formLanc.reset();
+  const inpParcelas = document.getElementById("input-parcelas"); if(inpParcelas) inpParcelas.value = "1";
+  
   const selConta = document.getElementById("input-conta");
   if(selConta) { selConta.innerHTML = ""; dados.contas.forEach(c => { selConta.innerHTML += `<option value="${c.id}">${c.nome}</option>`; }); }
   carregarTiposNoModal();
@@ -139,27 +142,23 @@ if(formLanc) {
       const fd = new FormData();
       fd.append("data", document.getElementById("input-data").value); fd.append("descricao", document.getElementById("input-descricao").value); fd.append("valor", document.getElementById("input-valor").value);
       fd.append("tipo_id", document.getElementById("input-tipo").value); fd.append("subtipo_id", document.getElementById("input-subtipo").value); fd.append("categoria_id", document.getElementById("input-categoria").value); fd.append("conta_id", document.getElementById("input-conta").value);
+      fd.append("parcelas", document.getElementById("input-parcelas") ? document.getElementById("input-parcelas").value : "1");
       const arq = document.getElementById("input-arquivo"); if (arq && arq.files.length) fd.append("arquivo", arq.files[0]);
       if ((await fetch("/api/lancamentos", { method: "POST", body: fd })).ok) { bootstrap.Modal.getInstance(document.getElementById("modalLancamento")).hide(); carregarTudo(); } else { alert("Erro ao salvar."); }
     };
 }
 
-// LÓGICA DE PAGAMENTO DE FATURA (NOVO)
+// LÓGICA DE PAGAMENTO DE FATURA (CORRIGIDA)
 window.abrirModalPagamento = () => {
-    // Abre o Modal
     const modal = new bootstrap.Modal(document.getElementById("modalPagamentoFatura"));
-    
-    // Define data de hoje
     document.getElementById("pag-data").value = new Date().toISOString().split("T")[0];
 
-    // Preenche Cartões (Destino)
     const selCartao = document.getElementById("pag-cartao-destino");
     selCartao.innerHTML = "";
     dados.contas.filter(c => c.tipo === 'cartao_credito').forEach(c => {
         selCartao.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
     });
 
-    // Preenche Contas (Origem)
     const selOrigem = document.getElementById("pag-conta-origem");
     selOrigem.innerHTML = "";
     dados.contas.filter(c => c.tipo !== 'cartao_credito').forEach(c => {
@@ -179,37 +178,46 @@ if(formPag) {
         const cartaoId = document.getElementById("pag-cartao-destino").value;
         const origemId = document.getElementById("pag-conta-origem").value;
         
-        // Pega nomes para descrição bonita
         const nomeCartao = dados.contas.find(c => c.id == cartaoId).nome;
         const nomeOrigem = dados.contas.find(c => c.id == origemId).nome;
 
-        // Pega IDs de Entrada e Saída (fixos no banco: 1=Entrada, 2=Saída)
-        // E vamos precisar de Subtipos. Como é complexo adivinhar IDs, vamos mandar com subtipo "Outros" ou pegar o primeiro que tiver.
-        // TRUQUE: O backend exige tipo e subtipo. Vamos pegar o primeiro subtipo de Entrada e de Saída que encontrarmos.
-        const idTipoEntrada = 1; 
-        const idTipoSaida = 2;
-        const subEntrada = dados.subtipos.find(s => s.tipo_id == idTipoEntrada)?.id || 1;
-        const subSaida = dados.subtipos.find(s => s.tipo_id == idTipoSaida)?.id || 1;
+        const idTipoEntrada = 1; // ID fixo para Entrada
+        const idTipoSaida = 2;   // ID fixo para Saída
 
-        // 1. Cria a SAÍDA na conta de origem
+        // --- LÓGICA INTELIGENTE DE CATEGORIZAÇÃO ---
+        // Tenta achar subtipo "Transferências" ou pega o primeiro disponível
+        const findSub = (tid, nome) => dados.subtipos.find(s => s.tipo_id == tid && s.nome.toLowerCase().includes(nome.toLowerCase()))?.id || dados.subtipos.find(s => s.tipo_id == tid)?.id;
+        
+        // Tenta achar categoria "Pagamento Fatura" ou pega a primeira disponível do subtipo escolhido
+        const findCat = (sid, nome) => dados.categorias.find(c => c.subtipo_id == sid && c.nome.toLowerCase().includes(nome.toLowerCase()))?.id || dados.categorias.find(c => c.subtipo_id == sid)?.id;
+
+        const subSaidaId = findSub(idTipoSaida, "Transferência");
+        const catSaidaId = findCat(subSaidaId, "Pagamento Fatura");
+
+        const subEntradaId = findSub(idTipoEntrada, "Transferência");
+        const catEntradaId = findCat(subEntradaId, "Pagamento Fatura");
+        // -------------------------------------------
+
+        // 1. SAÍDA DA CONTA (PAGAMENTO)
         const fd1 = new FormData();
         fd1.append("data", dataPag);
         fd1.append("descricao", `Pagamento Fatura ${nomeCartao}`);
         fd1.append("valor", valor);
         fd1.append("tipo_id", idTipoSaida);
-        fd1.append("subtipo_id", subSaida); // Genérico
+        fd1.append("subtipo_id", subSaidaId);
+        fd1.append("categoria_id", catSaidaId);
         fd1.append("conta_id", origemId);
         
-        // 2. Cria a ENTRADA no cartão (para abater a dívida)
+        // 2. ENTRADA NO CARTÃO (ABATIMENTO)
         const fd2 = new FormData();
         fd2.append("data", dataPag);
         fd2.append("descricao", `Pagamento Recebido (de ${nomeOrigem})`);
         fd2.append("valor", valor);
         fd2.append("tipo_id", idTipoEntrada);
-        fd2.append("subtipo_id", subEntrada); // Genérico
+        fd2.append("subtipo_id", subEntradaId);
+        fd2.append("categoria_id", catEntradaId);
         fd2.append("conta_id", cartaoId);
 
-        // Envia os dois
         await Promise.all([
             fetch("/api/lancamentos", { method: "POST", body: fd1 }),
             fetch("/api/lancamentos", { method: "POST", body: fd2 })
@@ -244,14 +252,71 @@ function atualizarInterface() {
       });
       const setTxt = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = fmtMoeda(val); };
       setTxt("card-saldo-disp", saldoDisponivel); setTxt("card-fatura", faturaCartao); setTxt("card-ent-geral", totalEntradas); setTxt("card-sai-geral", totalSaidas); setTxt("card-saldo-final", saldoDisponivel - faturaCartao);
-      drawChartBalanco(totalEntradas, totalSaidas); const ef = lista.filter((l) => l.efetivado); drawChart("chartEntSub", ef, "Entrada", "subtipo"); drawChart("chartEntCat", ef, "Entrada", "categoria"); drawChart("chartSaiSub", ef, "Saída", "subtipo"); drawChart("chartSaiCat", ef, "Saída", "categoria");
+      
+      // Gráficos
+      drawChartBalanco(totalEntradas, totalSaidas); 
+      const ef = lista.filter((l) => l.efetivado); 
+      drawChart("chartEntSub", ef, "Entrada", "subtipo"); 
+      drawChart("chartEntCat", ef, "Entrada", "categoria"); 
+      drawChart("chartSaiSub", ef, "Saída", "subtipo"); 
+      drawChart("chartSaiCat", ef, "Saída", "categoria");
   }
 }
 
-function drawChartBalanco(e, s) { const ctx = document.getElementById("chartBalanco"); if (!ctx) return; if (charts["chartBalanco"]) charts["chartBalanco"].destroy(); charts["chartBalanco"] = new Chart(ctx, { type: "pie", data: { labels: ["Entradas", "Saídas"], datasets: [{ data: [e, s], backgroundColor: ["#198754", "#dc3545"] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }, }); }
-function drawChart(id, d, f, c) { const ctx = document.getElementById("id"); if (!ctx) return; const i = d.filter((l) => l.tipo === f); const g = {}; i.forEach((x) => { const k = x[c] || "Outros"; g[k] = (g[k] || 0) + x.valor; }); if (charts[id]) charts[id].destroy(); charts[id] = new Chart(ctx, { type: "doughnut", data: { labels: Object.keys(g), datasets: [{ data: Object.values(g), backgroundColor: ["#0d6efd", "#6610f2", "#d63384", "#dc3545", "#ffc107", "#198754", "#20c997", "#0dcaf0"] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }, }); } // Oops, corrigindo ID no drawChart abaixo na versão final minificada acima
-// CORREÇÃO DA FUNÇÃO DRAWCHART (Estava com 'id' string)
-function drawChart(id, d, f, c) { const ctx = document.getElementById(id); if (!ctx) return; const i = d.filter((l) => l.tipo === f); const g = {}; i.forEach((x) => { const k = x[c] || "Outros"; g[k] = (g[k] || 0) + x.valor; }); if (charts[id]) charts[id].destroy(); charts[id] = new Chart(ctx, { type: "doughnut", data: { labels: Object.keys(g), datasets: [{ data: Object.values(g), backgroundColor: ["#0d6efd", "#6610f2", "#d63384", "#dc3545", "#ffc107", "#198754", "#20c997", "#0dcaf0"] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }, }); }
+// Configuração Comum para Tooltips de Moeda nos Gráficos
+const chartOptionsMoeda = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { position: "bottom" },
+        tooltip: {
+            callbacks: {
+                label: function(context) {
+                    let label = context.label || '';
+                    if (label) { label += ': '; }
+                    if (context.parsed !== null) {
+                        label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed);
+                    }
+                    return label;
+                }
+            }
+        }
+    }
+};
+
+function drawChartBalanco(e, s) { 
+    const ctx = document.getElementById("chartBalanco"); 
+    if (!ctx) return; 
+    if (charts["chartBalanco"]) charts["chartBalanco"].destroy(); 
+    charts["chartBalanco"] = new Chart(ctx, { 
+        type: "pie", 
+        data: { 
+            labels: ["Entradas", "Saídas"], 
+            datasets: [{ data: [e, s], backgroundColor: ["#198754", "#dc3545"] }] 
+        }, 
+        options: chartOptionsMoeda // Usa a opção com formatador
+    }); 
+}
+
+function drawChart(id, d, f, c) { 
+    const ctx = document.getElementById(id); 
+    if (!ctx) return; 
+    const i = d.filter((l) => l.tipo === f); 
+    const g = {}; 
+    i.forEach((x) => { const k = x[c] || "Outros"; g[k] = (g[k] || 0) + x.valor; }); 
+    if (charts[id]) charts[id].destroy(); 
+    charts[id] = new Chart(ctx, { 
+        type: "doughnut", 
+        data: { 
+            labels: Object.keys(g), 
+            datasets: [{ 
+                data: Object.values(g), 
+                backgroundColor: ["#0d6efd", "#6610f2", "#d63384", "#dc3545", "#ffc107", "#198754", "#20c997", "#0dcaf0"] 
+            }] 
+        }, 
+        options: chartOptionsMoeda // Usa a opção com formatador
+    }); 
+}
 
 async function toggleStatus(id) { await fetch(`/api/lancamentos/${id}/status`, { method: "PATCH" }); carregarTudo(); }
 async function delLanc(id) { showConfirmDelete(async () => { await fetch(`/api/lancamentos/${id}`, { method: "DELETE" }); carregarTudo(); }); }
@@ -265,63 +330,18 @@ function showConfirmDelete(callback) { deleteCallback = callback; const el = doc
 const btnConfDel = document.getElementById("btn-confirm-delete"); if(btnConfDel) btnConfDel.onclick = () => { if (deleteCallback) deleteCallback(); bootstrap.Modal.getInstance(document.getElementById("modalConfirmDelete")).hide(); };
 window.fmtMoeda = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 function fmtMoedaSimples(v) { return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-window.atualizarInterface = atualizarInterface; window.toggleVencimento = toggleVencimento; window.carregarPlanejamento = carregarPlanejamento; window.carregarSeletorAnos = carregarSeletorAnos; window.delLanc = delLanc; window.delVenc = delVenc; window.selectTipoConfig = selectTipoConfig; window.selectSubtipoConfig = selectSubtipoConfig; window.prepararExclusao = prepararExclusao; window.confirmarExclusao = confirmarExclusao;
 
-// EXPORTS EXTRAS
-window.atualizarOpcoesFormulario = atualizarOpcoesFormulario;
-window.filtrarCategoriasNoLancamento = filtrarCategoriasNoLancamento;
-window.abrirModalPagamento = abrirModalPagamento;
-
-// --- LÓGICA DE MANUTENÇÃO ---
-
-// 1. Restaurar Backup
+// Lógica de Manutenção (Restore/Reset)
 const formRestore = document.getElementById("form-restore");
 if(formRestore) {
     formRestore.onsubmit = async (e) => {
         e.preventDefault();
         if(!confirm("⚠️ ATENÇÃO: Isso irá substituir todos os dados atuais pelos do backup. Deseja continuar?")) return;
-
-        const fileInput = document.getElementById("arquivo-restore");
-        const fd = new FormData();
-        fd.append("arquivo", fileInput.files[0]);
-
-        try {
-            const res = await fetch("/api/manutencao/restore", { method: "POST", body: fd });
-            const json = await res.json();
-            
-            if (res.ok) {
-                alert("✅ " + json.msg);
-                window.location.reload(); // Recarrega para pegar os dados novos
-            } else {
-                alert("❌ Erro: " + json.erro);
-            }
-        } catch (e) {
-            console.error(e);
-            alert("Erro ao conectar com o servidor.");
-        }
+        const fileInput = document.getElementById("arquivo-restore"); const fd = new FormData(); fd.append("arquivo", fileInput.files[0]);
+        try { const res = await fetch("/api/manutencao/restore", { method: "POST", body: fd }); const json = await res.json(); if (res.ok) { alert("✅ " + json.msg); window.location.reload(); } else { alert("❌ Erro: " + json.erro); } } catch (e) { console.error(e); alert("Erro ao conectar com o servidor."); }
     };
 }
+window.confirmarReset = async () => { if(!confirm("🟥 PERIGO: Você tem certeza que deseja APAGAR TUDO? Essa ação não pode ser desfeita!")) return; if(!confirm("🟥 Confirme novamente: Todos os lançamentos serão perdidos. Continuar?")) return; try { const res = await fetch("/api/manutencao/reset", { method: "DELETE" }); const json = await res.json(); if (res.ok) { alert("✅ " + json.msg); window.location.reload(); } else { alert("❌ Erro: " + json.erro); } } catch (e) { console.error(e); alert("Erro ao resetar sistema."); } };
 
-// 2. Resetar Sistema (Apagar Tudo)
-window.confirmarReset = async () => {
-    // Confirmação Dupla para evitar acidentes
-    if(!confirm("🟥 PERIGO: Você tem certeza que deseja APAGAR TUDO? Essa ação não pode ser desfeita!")) return;
-    if(!confirm("🟥 Confirme novamente: Todos os lançamentos serão perdidos. Continuar?")) return;
-
-    try {
-        const res = await fetch("/api/manutencao/reset", { method: "DELETE" });
-        const json = await res.json();
-        
-        if (res.ok) {
-            alert("✅ " + json.msg);
-            window.location.reload();
-        } else {
-            alert("❌ Erro: " + json.erro);
-        }
-    } catch (e) {
-        console.error(e);
-        alert("Erro ao resetar sistema.");
-    }
-};
-
+window.atualizarInterface = atualizarInterface; window.toggleVencimento = toggleVencimento; window.carregarPlanejamento = carregarPlanejamento; window.carregarSeletorAnos = carregarSeletorAnos; window.delLanc = delLanc; window.delVenc = delVenc; window.selectTipoConfig = selectTipoConfig; window.selectSubtipoConfig = selectSubtipoConfig; window.prepararExclusao = prepararExclusao; window.confirmarExclusao = confirmarExclusao; window.atualizarOpcoesFormulario = atualizarOpcoesFormulario; window.filtrarCategoriasNoLancamento = filtrarCategoriasNoLancamento; window.abrirModalPagamento = abrirModalPagamento;
 init();
