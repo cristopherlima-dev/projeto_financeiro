@@ -6,9 +6,20 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./uploads:/app/uploads  # Mapeia a pasta de uploads
-      - ./dados:/app/dados      # Mapeia a pasta do banco de dados
+      - ./uploads:/app/uploads
+      - ./dados:/app/dados
     env_file:
       - .env
     environment:
-      - TZ=America/Sao_Paulo    # Garante o horário correto nos lançamentos
+      - TZ=America/Sao_Paulo
+
+  duckdns:
+    image: lscr.io/linuxserver/duckdns:latest
+    container_name: duckdns_updater
+    restart: unless-stopped
+    environment:
+      - SUBDOMAINS=financas-do-cris  # Apenas a primeira parte do domínio (sem .duckdns.org)
+      - TOKEN=${DUCKDNS_TOKEN}       # Lê do arquivo .env
+      - TZ=America/Sao_Paulo         # Fuso Horário
+      - LOG_FILE=false               # Não gerar arquivo de log (opcional)
+    
